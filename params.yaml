@@ -1,0 +1,77 @@
+# ─── Scraping ────────────────────────────────────────────────────────
+scraping:
+  max_listings_per_city: 200
+  headless: true
+  delay_min: 2.0
+  delay_max: 4.5
+  page_timeout_ms: 30000
+  max_consecutive_empty_pages: 3
+
+# ─── Validation ──────────────────────────────────────────────────────
+validation:
+  min_rows_required: 10
+  max_null_pct_price: 0.01
+  max_null_pct_area: 0.02
+  max_null_pct_bhk: 0.05
+  min_ppsf_valid_pct: 0.70
+
+# ─── Cleaning ────────────────────────────────────────────────────────
+cleaning:
+  min_price_cr: 0.05
+  max_price_cr: 100.0
+  min_bhk: 0
+  max_bhk: 10
+  iqr_multiplier: 1.5
+  min_rows_after_clean: 500
+
+# ─── Feature Engineering ─────────────────────────────────────────────
+features:
+  kfold_splits: 5
+  kfold_smoothing: 10
+  amenity_weights:
+    pool: 3.0
+    gym: 2.0
+    lift: 1.0
+    club: 1.0
+    security: 0.5
+    power_backup: 0.5
+    jogging: 0.5
+  high_floor_threshold: 0.75   # relative_floor >= this → is_high_floor=1
+
+# ─── Training ────────────────────────────────────────────────────────
+training:
+  target_column: log_price
+  cv_folds: 5
+  optuna_trials: 100
+  optuna_ensemble_trials: 25
+  random_state: 42
+  tier_weights:
+    Tier-1: 2.0
+    Tier-2: 1.0
+    Tier-3: 0.8
+
+# ─── Production Gate ─────────────────────────────────────────────────
+gate:
+  max_mape_pct: 22.0        # pipeline fails if MAPE > this
+  min_r2: 0.82              # pipeline fails if R² < this
+
+# ─── EMI Calculator ──────────────────────────────────────────────────
+emi:
+  rbi_repo_rate_pct: 6.5
+  default_bank_spread_pct: 2.75
+  default_tenure_years: 20
+  default_ltv_ratio: 0.80
+
+# ─── City Income (for affordability index) ───────────────────────────
+city_incomes:
+  gurgaon: 1200000
+  noida: 900000
+  chandigarh: 700000
+  kota: 400000
+
+# ─── Monitoring ──────────────────────────────────────────────────────
+monitoring:
+  psi_stable_threshold: 0.10
+  psi_warn_threshold: 0.25
+  psi_n_bins: 10
+  feedback_retrain_threshold: 50
