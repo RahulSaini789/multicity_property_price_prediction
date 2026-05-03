@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+
+# Environments
+.env
+.env.*
+.venv/
+env/
+venv/
+*.conda
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Data — NEVER commit raw or processed data to Git
+# DVC handles this — only .dvc pointer files go to Git
+data/raw/
+data/cleaned/
+data/features/
+!data/raw/.gitkeep
+!data/cleaned/.gitkeep
+!data/features/.gitkeep
+
+# Models — too large for Git, use HuggingFace Hub
+models/
+!models/.gitkeep
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Reports (generated, not source)
+reports/analytics/
+reports/validation/
+reports/drift/
+!reports/analytics/.gitkeep
+!reports/validation/.gitkeep
+!reports/drift/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Secrets — NEVER commit
+.env
+secrets/
+*.pem
+*.key
+
+# Docker
+.docker/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
