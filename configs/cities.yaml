@@ -1,0 +1,27 @@
+gurgaon:
+  url_slug: gurgaon-all-residential
+  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Gurgaon
+  price_bounds: [500000, 600000000]
+  area_bounds: [200, 20000]
+  ppsf_bounds: [1500, 45000]
+
+noida:
+  url_slug: noida-all-residential
+  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Noida
+  price_bounds: [300000, 400000000]
+  area_bounds: [200, 15000]
+  ppsf_bounds: [2000, 28000]
+
+chandigarh:
+  url_slug: chandigarh-all-residential
+  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Chandigarh
+  price_bounds: [500000, 300000000]
+  area_bounds: [300, 15000]
+  ppsf_bounds: [1500, 22000]
+
+kota:
+  url_slug: kota-all-residential
+  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Kota
+  price_bounds: [200000, 100000000]
+  area_bounds: [200, 10000]
+  ppsf_bounds: [800, 12000]
