@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: propml-api
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -r requirements-render.txt
+    startCommand: uvicorn src.serving.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: HF_MODEL_REPO
+        value: Dumdigi/propml-models
+      - key: MODELS_DIR
+        value: models
+    healthCheckPath: /health
+    autoDeploy: true

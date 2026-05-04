@@ -1,0 +1,6 @@
+# Dockerfile.api — filled in during Week 7 (L8 FastAPI + Docker)
+# Multi-stage build: builder → production
+# Target image size: < 700MB
+FROM python:3.11-slim AS builder
+WORKDIR /build
+# Full implementation added in Week 7

@@ -1,0 +1,11 @@
+# docker-compose.yml — filled in during Week 7 (L8 FastAPI + Docker)
+# Services: api, mlflow, postgres, grafana
+version: "3.9"
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    # Full implementation added in Week 7

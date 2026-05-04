@@ -1,0 +1,14 @@
+name: Nightly Scrape
+
+on:
+  schedule:
+    - cron: '30 20 * * *'   # 02:00 IST daily
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: placeholder
+        run: echo "Scraper — full implementation added in Week 3"
