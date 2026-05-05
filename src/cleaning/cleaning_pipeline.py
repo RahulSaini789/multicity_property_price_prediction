@@ -368,3 +368,135 @@ def apply_business_logic_filters(df: pd.DataFrame) -> pd.DataFrame:
         f"Remaining: {len(df)}"
     )
     return df
+
+
+
+
+
+
+def create_city_tier(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Classify each property into Tier-1 / Tier-2 / Tier-3 within its city.
+
+    Method: within-city price tertiles
+      Tier-1 = top 33% by price (luxury)
+      Tier-2 = middle 33% (mid-market)
+      Tier-3 = bottom 33% (budget)
+
+    Why within-city and not global:
+      A ₹1.5Cr flat is Tier-1 in Kota but Tier-3 in Gurgaon.
+      Global classification conflates different markets.
+
+    Why this exists:
+      Layer 7 assigns higher sample weights to Tier-1 properties
+      (harder to predict due to higher variance, less data).
+      Layer 6 uses city_tier_num as a feature.
+      Grouped IQR (next function) uses tiers to avoid removing
+      luxury properties as "outliers" when budget properties dominate.
+    """
+    logger.info("Creating city tier classification...")
+    df["city_tier"] = "Tier-2"  # Default
+
+    for city in df["city"].unique():
+        mask   = df["city"] == city
+        prices = df.loc[mask, "price"]
+        q33    = prices.quantile(0.33)
+        q67    = prices.quantile(0.67)
+
+        df.loc[mask & (df["price"] <= q33), "city_tier"] = "Tier-3"
+        df.loc[mask & (df["price"] >  q33) & (df["price"] <= q67), "city_tier"] = "Tier-2"
+        df.loc[mask & (df["price"] >  q67), "city_tier"] = "Tier-1"
+
+        dist = df.loc[mask, "city_tier"].value_counts().to_dict()
+        logger.info(f"  {city.upper()}: {dist}")
+
+    return df
+
+
+
+
+
+
+
+def remove_structural_outliers(df: pd.DataFrame, iqr_multiplier: float = 1.5) -> pd.DataFrame:
+    """
+    Remove statistical outliers using grouped IQR.
+
+    Groups: city × property_type × city_tier
+    For each group, compute IQR bounds on price and area separately.
+    Remove rows outside bounds IN THAT GROUP ONLY.
+
+    Why grouped, not global:
+      Global IQR on merged data where flats outnumber houses 3:1
+      pulls the upper price fence DOWN, falsely flagging ₹10Cr luxury
+      houses as outliers. In testing, global IQR removed 54% of valid
+      luxury houses. Grouped IQR applies separate bounds per sub-market.
+
+      Example:
+        Global upper fence for price: Q3 + 1.5×IQR = ₹3.2Cr
+        → Every house above ₹3.2Cr gets removed (that's 80% of houses)
+
+        Grouped upper fence for Gurgaon / house / Tier-1:
+        Q3 + 1.5×IQR = ₹18.5Cr
+        → Only genuine extreme outliers (data errors) removed
+
+    Minimum group size: 10 rows
+      Groups smaller than 10 rows are skipped — not enough data
+      to compute meaningful IQR bounds.
+    """
+    logger.info("Removing structural outliers (grouped IQR)...")
+    initial    = len(df)
+    valid_mask = pd.Series(True, index=df.index)
+    stats_log  = []
+
+    for city in df["city"].unique():
+        for prop_type in df["property_type"].unique():
+            for tier in df["city_tier"].unique():
+
+                group_mask = (
+                    (df["city"]          == city) &
+                    (df["property_type"] == prop_type) &
+                    (df["city_tier"]     == tier)
+                )
+                subset = df[group_mask]
+                if len(subset) < 10:
+                    continue
+
+                # ── Price IQR bounds ──────────────────────────────────
+                q1_p, q3_p = subset["price"].quantile([0.25, 0.75])
+                iqr_p  = q3_p - q1_p
+                lo_p   = max(q1_p - iqr_multiplier * iqr_p, 0.01)
+                hi_p   = q3_p + iqr_multiplier * iqr_p
+
+                # ── Area IQR bounds ───────────────────────────────────
+                q1_a, q3_a = subset["area"].quantile([0.25, 0.75])
+                iqr_a  = q3_a - q1_a
+                min_a  = MIN_AREA_BY_TYPE.get(prop_type, 200)
+                lo_a   = max(q1_a - iqr_multiplier * iqr_a, min_a)
+                hi_a   = q3_a + iqr_multiplier * iqr_a
+
+                # ── Apply bounds ──────────────────────────────────────
+                keep = (
+                    (df["price"] >= lo_p) & (df["price"] <= hi_p) &
+                    (df["area"]  >= lo_a) & (df["area"]  <= hi_a)
+                )
+                valid_mask[group_mask] = keep[group_mask]
+
+                removed = len(subset) - keep[group_mask].sum()
+                if removed > 0:
+                    stats_log.append(
+                        f"  {city.upper()} | {tier} | {prop_type}: "
+                        f"-{removed}/{len(subset)}"
+                    )
+
+    for line in stats_log:
+        logger.info(line)
+
+    df_clean = df[valid_mask].copy()
+    total_removed = initial - len(df_clean)
+    pct = total_removed / initial * 100
+    logger.info(
+        f"Grouped IQR: removed {total_removed} ({pct:.1f}%). "
+        f"Remaining: {len(df_clean)}"
+    )
+    return df_clean
