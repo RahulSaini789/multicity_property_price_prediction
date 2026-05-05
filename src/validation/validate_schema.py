@@ -34,6 +34,32 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _load_params(params_path: str = "params.yaml") -> dict:
+    """Load validation params from params.yaml. Returns defaults if file missing."""
+    defaults = {
+        "validation": {
+            "min_rows_required": 10,
+            "max_null_pct_price": 0.01,
+            "max_null_pct_area": 0.02,
+            "min_ppsf_valid_pct": 0.70,
+        }
+    }
+    if not Path(params_path).exists():
+        return defaults
+
+    with open(params_path) as f:
+        params = yaml.safe_load(f)
+
+    # Merge with defaults so missing keys don't crash
+    merged = defaults.copy()
+    merged["validation"].update(params.get("validation", {}))
+    return merged
+
+
+PARAMS = _load_params()
+VAL_PARAMS = PARAMS["validation"]
+
+
 # ─── Required columns ────────────────────────────────────────────────────────
 # Every row in every city parquet must have these.
 # Missing = CRITICAL failure → pipeline stops.
@@ -187,8 +213,8 @@ class SchemaValidator:
         n = len(self.df)
         self._check(
             "row_count",
-            n >= 10,
-            f"{n} rows loaded (minimum 10 required)",
+            n >= VAL_PARAMS["min_rows_required"],
+            f"{n} rows loaded (minimum {VAL_PARAMS['min_rows_required']} required)",
         )
 
     def check_required_columns(self):
@@ -214,8 +240,12 @@ class SchemaValidator:
             )
 
     def check_null_rates(self):
-        """Null rate per column against thresholds."""
-        for col, (threshold, level) in NULL_THRESHOLDS.items():
+        thresholds = {
+            **NULL_THRESHOLDS,
+            "price": (VAL_PARAMS["max_null_pct_price"], "CRITICAL"),
+            "area":  (VAL_PARAMS["max_null_pct_area"],  "CRITICAL"),
+        }
+        for col, (threshold, level) in thresholds.items():
             if col not in self.df.columns:
                 continue
             null_rate = self.df[col].isna().mean()
@@ -436,3 +466,81 @@ class SchemaValidator:
                 "overall":  overall,
             },
         }
+    
+
+def save_report(report: dict, report_dir: str = "reports/validation") -> str:
+    """
+    Save validation report to timestamped JSON file.
+
+    Path: reports/validation/validation_{city}_{YYYYMMDD}.json
+
+    The report is:
+    - Read by humans to diagnose data quality issues
+    - Read by CI/CD to check if validation passed before training
+    - Archived to track data quality over time
+    """
+    report_path = Path(report_dir)
+    report_path.mkdir(parents=True, exist_ok=True)
+
+    today = datetime.now().strftime("%Y%m%d")
+    filename = f"validation_{report['city']}_{today}.json"
+    path = report_path / filename
+
+    with open(path, "w") as f:
+        json.dump(report, f, indent=2, default=str)
+
+    logger.info(f"Report saved → {path}")
+    return str(path)
+
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="PropML Data Validator")
+    parser.add_argument(
+        "--city", default="all",
+        help="City to validate, or 'all' for all 4 cities (default: all)",
+    )
+    parser.add_argument(
+        "--data-dir", default="data/raw",
+        help="Directory containing city parquet files (default: data/raw)",
+    )
+    parser.add_argument(
+        "--report-dir", default="reports/validation",
+        help="Directory to save validation reports (default: reports/validation)",
+    )
+    parser.add_argument(
+        "--fail-on-critical", action="store_true", default=True,
+        help="Exit with code 1 if any CRITICAL check fails (default: True)",
+    )
+    args = parser.parse_args()
+
+    all_cities = ["gurgaon", "noida", "chandigarh", "kota"]
+    targets = all_cities if args.city == "all" else [args.city]
+
+    any_failed = False
+
+    for city in targets:
+        df = load_latest_parquet(city, args.data_dir)
+
+        if df is None:
+            logger.warning(f"Skipping {city} — no data found in {args.data_dir}/{city}/")
+            continue
+
+        validator = SchemaValidator(df, city)
+        report    = validator.run()
+        save_report(report, args.report_dir)
+
+        if report["summary"]["overall"] == "FAIL":
+            any_failed = True
+
+    if any_failed and args.fail_on_critical:
+        logger.error("One or more cities failed CRITICAL validation. Stopping pipeline.")
+        sys.exit(1)
+
+    logger.info("\n✅ Validation complete. Next: python src/cleaning/cleaning_pipeline.py")
+
+
+if __name__ == "__main__":
+    main()

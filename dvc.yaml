@@ -16,70 +16,74 @@ stages:
         - scraping.delay_max
 
   validate:
-    cmd: python src/validation/validate_schema.py --city all --fail-on-critical
-    deps:
-      - src/validation/validate_schema.py
-      - data/raw/
-    outs:
-      - reports/validation/
-    params:
-      - params.yaml:
-        - validation.min_rows_required
-        - validation.max_null_pct_price
-        - validation.min_ppsf_valid_pct
+      cmd: python src/validation/validate_schema.py --city all --fail-on-critical
+      deps:
+        - src/validation/validate_schema.py
+        - data/raw/gurgaon/
+        - data/raw/noida/
+        - data/raw/chandigarh/
+        - data/raw/kota/
+      outs:
+        - reports/validation/
+      params:
+        - params.yaml:
+          - validation.min_rows_required
+          - validation.max_null_pct_price
+          - validation.max_null_pct_area
+          - validation.min_ppsf_valid_pct
 
-  clean:
-    cmd: python src/cleaning/cleaning_pipeline.py
-    deps:
-      - src/cleaning/cleaning_pipeline.py
-      - data/raw/
-    outs:
-      - data/cleaned/combined_cleaned.parquet
-    params:
-      - params.yaml:
-        - cleaning.min_price_cr
-        - cleaning.max_price_cr
-        - cleaning.iqr_multiplier
+  # clean:
+  #   cmd: python src/cleaning/cleaning_pipeline.py
+  #   deps:
+  #     - src/cleaning/cleaning_pipeline.py
+  #     - data/raw/
+  #   outs:
+  #     - data/cleaned/combined_cleaned.parquet
+  #   params:
+  #     - params.yaml:
+  #       - cleaning.min_price_cr
+  #       - cleaning.max_price_cr
+  #       - cleaning.iqr_multiplier
 
-  featurize:
-    cmd: python src/features/feature_engineering.py
-    deps:
-      - src/features/feature_engineering.py
-      - data/cleaned/combined_cleaned.parquet
-    outs:
-      - data/features/combined_engineered.parquet
-      - data/features/feature_list.txt
-      - data/features/target_encoding_map.json
-    params:
-      - params.yaml:
-        - features.kfold_splits
-        - features.kfold_smoothing
-        - features.amenity_weights
+  # featurize:
+  #   cmd: python src/features/feature_engineering.py
+  #   deps:
+  #     - src/features/feature_engineering.py
+  #     - data/cleaned/combined_cleaned.parquet
+  #   outs:
+  #     - data/features/combined_engineered.parquet
+  #     - data/features/feature_list.txt
+  #     - data/features/target_encoding_map.json
+  #   params:
+  #     - params.yaml:
+  #       - features.kfold_splits
+  #       - features.kfold_smoothing
+  #       - features.amenity_weights
 
-  train:
-    cmd: python src/training/train.py
-    deps:
-      - src/training/train.py
-      - data/features/combined_engineered.parquet
-      - data/features/feature_list.txt
-    outs:
-      - models/
-    params:
-      - params.yaml:
-        - training.cv_folds
-        - training.optuna_trials
-        - training.tier_weights
-        - gate.max_mape_pct
-        - gate.min_r2
-    metrics:
-      - reports/metrics.json:
-          cache: false
+  # train:
+  #   cmd: python src/training/train.py
+  #   deps:
+  #     - src/training/train.py
+  #     - data/features/combined_engineered.parquet
+  #     - data/features/feature_list.txt
+  #   outs:
+  #     - models/
+  #   params:
+  #     - params.yaml:
+  #       - training.cv_folds
+  #       - training.optuna_trials
+  #       - training.tier_weights
+  #       - gate.max_mape_pct
+  #       - gate.min_r2
+  #   metrics:
+  #     - reports/metrics.json:
+  #         cache: false
 
-  analytics:
-    cmd: python src/analytics/analytics_engine.py
-    deps:
-      - src/analytics/analytics_engine.py
-      - data/features/combined_engineered.parquet
-      - data/cleaned/combined_cleaned.parquet
-    outs:
-      - reports/analytics/
+  # analytics:
+  #   cmd: python src/analytics/analytics_engine.py
+  #   deps:
+  #     - src/analytics/analytics_engine.py
+  #     - data/features/combined_engineered.parquet
+  #     - data/cleaned/combined_cleaned.parquet
+  #   outs:
+  #     - reports/analytics/

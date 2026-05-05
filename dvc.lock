@@ -1,0 +1,58 @@
+schema: '2.0'
+stages:
+  scrape:
+    cmd: python src/ingestion/run_all_cities.py
+    deps:
+    - path: configs/cities.yaml
+      md5: 5005ed60cd6378d5d72250f48921f66c
+      size: 1393
+    - path: src/ingestion/magicbricks_scraper.py
+      md5: 5a8c067cc1fde3bfdd00268983a764bc
+      size: 17736
+    - path: src/ingestion/run_all_cities.py
+      md5: c487438869bf64b044410bf26c1f5d9a
+      size: 2644
+    params:
+      params.yaml:
+        scraping.delay_max: 4.5
+        scraping.delay_min: 2.0
+        scraping.headless: true
+        scraping.max_listings_per_city: 3000
+    outs:
+    - path: data/raw/
+      md5: 2ef677b39e709fb70d445a61d992e3da.dir
+      size: 132815
+      nfiles: 4
+  validate:
+    cmd: python src/validation/validate_schema.py --city all --fail-on-critical
+    deps:
+    - path: data/raw/chandigarh/
+      md5: fc5ac84851e11f9b034347a407f6ab10.dir
+      size: 27699
+      nfiles: 1
+    - path: data/raw/gurgaon/
+      md5: 372ac0c90e1480fccb04f04c3ba9f59a.dir
+      size: 48837
+      nfiles: 1
+    - path: data/raw/kota/
+      md5: 8dc9af0c0fd2c64fb071863e5eb9afe8.dir
+      size: 21006
+      nfiles: 1
+    - path: data/raw/noida/
+      md5: 867acfd029d12110bea5178a7cb68131.dir
+      size: 35273
+      nfiles: 1
+    - path: src/validation/validate_schema.py
+      md5: 0da76bc8b4e525d8aed12a8def381fa7
+      size: 19234
+    params:
+      params.yaml:
+        validation.max_null_pct_area: 0.02
+        validation.max_null_pct_price: 0.01
+        validation.min_ppsf_valid_pct: 0.7
+        validation.min_rows_required: 10
+    outs:
+    - path: reports/validation/
+      md5: 06f5c87940816432515170fbaf12f7b8.dir
+      size: 15104
+      nfiles: 4
