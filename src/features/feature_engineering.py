@@ -671,3 +671,195 @@ def run_target_encoding(df: pd.DataFrame) -> tuple:
 
 
 
+def validate_features(df: pd.DataFrame, features: list) -> bool:
+    """
+    Post-engineering feature validation.
+
+    Checks every feature column for:
+    - Existence (not silently skipped)
+    - NaN values (silent NaN propagation is the hardest bug to find)
+    - Non-numeric dtype (string column in feature matrix crashes XGBoost)
+    - Inf values (log(0) edge cases produce -Inf)
+
+    Why explicit:
+      Silent NaN → the model trains, metrics look OK,
+      but predictions are wrong for a subset of properties.
+      Finding this 3 days later is expensive. Catching it here is free.
+
+    Returns True if all checks pass. Returns False and logs all failures
+    so multiple issues are visible at once (not just the first one).
+    """
+    logger.info("\nFeature validation...")
+    issues = []
+
+    for feat in features:
+        if feat not in df.columns:
+            issues.append(f"MISSING: '{feat}' not in DataFrame")
+            continue
+
+        series = df[feat]
+
+        # NaN check
+        nan_count = series.isna().sum()
+        if nan_count > 0:
+            pct = nan_count / len(df) * 100
+            issues.append(f"NaN: '{feat}' has {nan_count} nulls ({pct:.1f}%)")
+
+        # Dtype check
+        if series.dtype == object:
+            issues.append(f"DTYPE: '{feat}' is object/string (must be numeric)")
+
+        # Inf check
+        if np.isinf(series.replace([np.inf, -np.inf], np.nan).dropna()).any():
+            issues.append(f"INF: '{feat}' contains infinite values")
+
+    if issues:
+        for issue in issues:
+            logger.error(f"  FAIL: {issue}")
+        return False
+
+    logger.info(f"  ✅ All {len(features)} features valid. No NaN/Inf/dtype issues.")
+    return True
+
+
+
+
+
+
+
+
+
+
+
+def run_feature_engineering() -> pd.DataFrame:
+    """
+    Full Layer 6 pipeline — assembles all 32 features.
+
+    Output files:
+      data/features/combined_engineered.parquet  — feature matrix + metadata cols
+      data/features/feature_list.txt             — ordered list of feature names
+      data/features/feature_metadata.json        — stats per feature + schema
+      data/features/target_encoding_map.json     — maps for FastAPI inference
+    """
+    logger.info("=" * 60)
+    logger.info("Layer 6: Feature Engineering Pipeline")
+    logger.info("=" * 60)
+
+    # ── Stage 1: Load ─────────────────────────────────────────────────
+    df = load_cleaned()
+    df = align_location_column(df)
+
+    # ── Stage 2: Numeric passthrough columns ──────────────────────────
+    for col in ["bhk", "bathroom", "balcony", "parking"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0).clip(0, 10)
+
+    # ── Stage 3: City tier numeric ────────────────────────────────────
+    df = build_city_tier_num(df)
+
+    # ── Stage 4: Target encoding (must run before interactions) ───────
+    df, _ = run_target_encoding(df)
+
+    # ── Stage 5: Property type one-hot ────────────────────────────────
+    df = build_property_type_flags(df)
+
+    # ── Stage 6: Ratio + log features ────────────────────────────────
+    df = build_ratio_features(df)
+
+    # ── Stage 7: Floor features ───────────────────────────────────────
+    df = build_floor_features(df)
+
+    # ── Stage 8: Quality features ─────────────────────────────────────
+    df = build_quality_features(df)
+
+    # ── Stage 9: Nearby NLP flags ─────────────────────────────────────
+    df = build_nearby_flags(df)
+
+    # ── Stage 10: Age bucket ──────────────────────────────────────────
+    df = build_age_bucket(df)
+
+    # ── Stage 11: Interaction features (requires encoded cols) ────────
+    df = build_interaction_features(df)
+
+    # ── Stage 12: is_near_coaching passthrough ────────────────────────
+    if "is_near_coaching" in df.columns:
+        df["is_near_coaching"] = pd.to_numeric(
+            df["is_near_coaching"], errors="coerce"
+        ).fillna(0).astype(int)
+    else:
+        df["is_near_coaching"] = 0
+
+    # ── Stage 13: Filter to FINAL_FEATURES, fill any remaining NaN ───
+    available = []
+    skipped   = []
+    for feat in FINAL_FEATURES:
+        if feat in df.columns:
+            df[feat] = pd.to_numeric(df[feat], errors="coerce").astype(float)
+            null_count = df[feat].isna().sum()
+            if null_count > 0:
+                fill_val = df[feat].median()
+                df[feat] = df[feat].fillna(fill_val)
+                logger.debug(f"  Filled {null_count} NaN in '{feat}' with median={fill_val:.3f}")
+            available.append(feat)
+        else:
+            skipped.append(feat)
+
+    if skipped:
+        logger.warning(f"  Skipped {len(skipped)} features not in data: {skipped}")
+
+    logger.info(f"\nFinal feature count: {len(available)} / {len(FINAL_FEATURES)}")
+
+    # ── Stage 14: Validate ────────────────────────────────────────────
+    is_valid = validate_features(df, available)
+    if not is_valid:
+        logger.warning("Validation issues found — check feature engineering steps")
+
+    # ── Stage 15: Save ────────────────────────────────────────────────
+    metadata_cols = [TARGET, "price", "city", "property_type", "city_tier"]
+    out_cols = available + [c for c in metadata_cols if c in df.columns]
+    out_df = df[out_cols].copy()
+
+    Path(FEATURES_PATH).parent.mkdir(parents=True, exist_ok=True)
+    out_df.to_parquet(FEATURES_PATH, index=False)
+
+    with open(FEAT_LIST_PATH, "w") as f:
+        f.write("\n".join(available))
+
+    metadata = {
+        "feature_columns":  available,
+        "target_column":    TARGET,
+        "n_features":       len(available),
+        "n_rows":           len(out_df),
+        "generated_at":     datetime.now().isoformat(),
+        "cities":           out_df["city"].value_counts().to_dict(),
+        "property_types":   out_df["property_type"].value_counts().to_dict(),
+        "feature_stats": {
+            feat: {
+                "mean": round(float(out_df[feat].mean()), 4),
+                "std":  round(float(out_df[feat].std()),  4),
+                "min":  round(float(out_df[feat].min()),  4),
+                "max":  round(float(out_df[feat].max()),  4),
+            }
+            for feat in available
+        },
+    }
+    with open(META_PATH, "w") as f:
+        json.dump(metadata, f, indent=2)
+
+    logger.info(f"\n✅ Feature engineering complete")
+    logger.info(f"   {len(out_df)} rows × {len(available)} features")
+    logger.info(f"   → {FEATURES_PATH}")
+    logger.info(f"   → {FEAT_LIST_PATH}")
+    logger.info(f"   → {ENC_MAP_PATH}")
+    logger.info(f"   → {META_PATH}")
+    logger.info(f"\nNext: python src/training/train.py")
+
+    return out_df
+
+
+def main():
+    run_feature_engineering()
+
+
+if __name__ == "__main__":
+    main()

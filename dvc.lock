@@ -10,7 +10,7 @@ stages:
       md5: 5a8c067cc1fde3bfdd00268983a764bc
       size: 17736
     - path: src/ingestion/run_all_cities.py
-      md5: c487438869bf64b044410bf26c1f5d9a
+      md5: 7bd3b78a7d1742bdf703c2f9644f973e
       size: 2644
     params:
       params.yaml:
@@ -20,27 +20,27 @@ stages:
         scraping.max_listings_per_city: 3000
     outs:
     - path: data/raw/
-      md5: 2ef677b39e709fb70d445a61d992e3da.dir
-      size: 132815
+      md5: 80acf1794da3dca1cd62e866f56bc161.dir
+      size: 181856
       nfiles: 4
   validate:
     cmd: python src/validation/validate_schema.py --city all --fail-on-critical
     deps:
     - path: data/raw/chandigarh/
-      md5: fc5ac84851e11f9b034347a407f6ab10.dir
-      size: 27699
+      md5: 131cf109177a8b76f25e6037ee34d69d.dir
+      size: 27282
       nfiles: 1
     - path: data/raw/gurgaon/
-      md5: 372ac0c90e1480fccb04f04c3ba9f59a.dir
-      size: 48837
+      md5: d276e984dfea05b2fa59bdd17e67b2a1.dir
+      size: 89217
       nfiles: 1
     - path: data/raw/kota/
-      md5: 8dc9af0c0fd2c64fb071863e5eb9afe8.dir
-      size: 21006
+      md5: 1c14d04c6d9b7875769a9890a92ca3d0.dir
+      size: 20963
       nfiles: 1
     - path: data/raw/noida/
-      md5: 867acfd029d12110bea5178a7cb68131.dir
-      size: 35273
+      md5: 252130d313bb363759f5174130a4c3cc.dir
+      size: 44394
       nfiles: 1
     - path: src/validation/validate_schema.py
       md5: 0da76bc8b4e525d8aed12a8def381fa7
@@ -53,6 +53,59 @@ stages:
         validation.min_rows_required: 10
     outs:
     - path: reports/validation/
-      md5: 06f5c87940816432515170fbaf12f7b8.dir
-      size: 15104
+      md5: 9c1eea00a60b33ffa6bc2e8d18a0cb28.dir
+      size: 15102
       nfiles: 4
+  clean:
+    cmd: python src/cleaning/cleaning_pipeline.py
+    deps:
+    - path: reports/validation/
+      md5: 9c1eea00a60b33ffa6bc2e8d18a0cb28.dir
+      size: 15102
+      nfiles: 4
+    params:
+      params.yaml:
+        cleaning.iqr_multiplier: 1.5
+        cleaning.max_bhk: 10
+        cleaning.max_price_cr: 100.0
+        cleaning.min_bhk: 0
+        cleaning.min_price_cr: 0.05
+    outs:
+    - path: data/cleaned/combined_cleaned.parquet
+      md5: 8dc1e65f05943eee2799a6a26e4436b1
+      size: 133336
+  featurize:
+    cmd: python src/features/feature_engineering.py
+    deps:
+    - path: data/cleaned/combined_cleaned.parquet
+      md5: 8dc1e65f05943eee2799a6a26e4436b1
+      size: 133336
+    - path: src/features/feature_engineering.py
+      md5: 4c66e40509c36b1563925acf94ab0106
+      size: 27691
+    params:
+      params.yaml:
+        features.amenity_weights:
+          pool: 3.0
+          gym: 2.0
+          lift: 1.0
+          club: 1.0
+          security: 0.5
+          power_backup: 0.5
+          jogging: 0.5
+        features.high_floor_threshold: 0.75
+        features.kfold_smoothing: 10
+        features.kfold_splits: 5
+    outs:
+    - path: data/features/combined_engineered.parquet
+      md5: c00fdc228dfc3fdd616eaca9f257db92
+      size: 162068
+    - path: data/features/feature_list.txt
+      md5: c1697448493f60974958a2de62b917bf
+      size: 447
+    - path: data/features/feature_metadata.json
+      md5: 10d5d8367c451ef8907d0f6351fd90f5
+      size: 4634
+    - path: data/features/target_encoding_map.json
+      md5: 2c58abb76a834e4bee2a9913c706098b
+      size: 34727
