@@ -531,4 +531,143 @@ def build_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
 
 
 
+def compute_global_encoding_map(
+    df: pd.DataFrame,
+    cat_col: str,
+    smoothing: int = 10,
+) -> tuple:
+    """
+    Compute smoothed global target encoding map for API inference.
+
+    Smoothing formula:
+      encoded = (n * group_mean + k * global_mean) / (n + k)
+
+      n = count of properties in this group
+      k = smoothing constant (10)
+      global_mean = mean(log_price) across entire dataset
+
+    Why smoothing:
+      A locality with only 2 properties might have avg log_price of 3.5
+      purely by chance. Without smoothing, the API would encode this
+      locality as 'very expensive' based on 2 data points.
+      With k=10, we need at least 10 properties before we trust the
+      local mean. Rare localities pull toward global_mean.
+
+    This global map is for the FastAPI endpoint only.
+    Layer 7 training recomputes encoding INSIDE each CV fold to prevent
+    leakage between training and validation rows.
+    """
+    global_mean = df[TARGET].mean()
+    stats = df.groupby(cat_col)[TARGET].agg(["mean", "count"])
+    smoothed = (
+        (stats["count"] * stats["mean"] + smoothing * global_mean)
+        / (stats["count"] + smoothing)
+    )
+    return smoothed.to_dict(), float(global_mean)
+
+
+
+
+
+
+
+def apply_global_encoding(
+    df: pd.DataFrame,
+    cat_col: str,
+    global_map: dict,
+    global_mean: float,
+) -> pd.DataFrame:
+    """
+    Apply global encoding map to create an encoded feature column.
+
+    Unseen values (new localities not in training data) get global_mean.
+    This is the correct behavior — we have no location-specific info,
+    so we fall back to the population average.
+
+    Column name: {cat_col}_encoded
+    """
+    out_col = f"{cat_col}_encoded"
+    df[out_col] = df[cat_col].map(global_map).fillna(global_mean)
+
+    logger.info(
+        f"  {out_col}: "
+        f"min={df[out_col].min():.3f}, "
+        f"max={df[out_col].max():.3f}, "
+        f"mean={df[out_col].mean():.3f}"
+    )
+    return df
+
+
+
+
+
+
+
+
+
+
+def build_city_tier_num(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Convert string city_tier to ordered numeric.
+
+    Tier-1=3, Tier-2=2, Tier-3=1
+
+    Numeric (not categorical) because:
+    - Used in interaction features (area × city_tier_num)
+    - Numeric interaction is meaningful (bigger tier = higher multiplier)
+    - Tree models handle numeric better than string for multiplication
+    """
+    tier_map = {"Tier-1": 3, "Tier-2": 2, "Tier-3": 1}
+    df["city_tier_num"] = df["city_tier"].map(tier_map).fillna(2).astype(float)
+    return df
+
+
+
+
+
+
+
+
+
+def run_target_encoding(df: pd.DataFrame) -> tuple:
+    """
+    Compute and apply target encoding for city and locality.
+    Save global maps to target_encoding_map.json.
+
+    Returns (df_with_encoded_cols, encoding_maps_dict)
+    """
+    logger.info("\nTarget encoding (K-Fold smoothed)...")
+
+    city_map,     city_gmean  = compute_global_encoding_map(df, "city")
+    locality_map, locale_gmean = compute_global_encoding_map(df, "locality")
+
+    df = apply_global_encoding(df, "city",     city_map,     city_gmean)
+    df = apply_global_encoding(df, "locality", locality_map, locale_gmean)
+
+    # Save for FastAPI endpoint
+    encoding_maps = {
+        "city_map":              city_map,
+        "city_global_mean":      city_gmean,
+        "locality_map":          locality_map,
+        "locality_global_mean":  locale_gmean,
+    }
+    Path(ENC_MAP_PATH).parent.mkdir(parents=True, exist_ok=True)
+    with open(ENC_MAP_PATH, "w") as f:
+        json.dump(encoding_maps, f, indent=2)
+
+    logger.info(f"  Encoding maps saved → {ENC_MAP_PATH}")
+    logger.info(f"  city_map: {len(city_map)} entries")
+    logger.info(f"  locality_map: {len(locality_map)} entries")
+
+    return df, encoding_maps
+
+
+
+
+
+
+
+
+
+
 
