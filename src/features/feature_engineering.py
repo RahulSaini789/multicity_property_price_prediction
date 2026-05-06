@@ -300,3 +300,235 @@ def build_age_bucket(df: pd.DataFrame) -> pd.DataFrame:
         df["age_bucket"] = 2
 
     return df   
+
+
+
+
+
+
+def parse_amenity_score(amenities_str) -> float:
+    """
+    Weighted sum of amenities present.
+
+    Weights reflect price premium each amenity adds:
+      pool:           3.0  (highest — adds ₹30–50L to luxury flat)
+      gym:            2.0
+      lift:           1.0  (basic — expected in most buildings)
+      club_house:     1.0
+      security/24x7:  0.5
+      power_backup:   0.5
+      jogging/park:   0.5
+
+    Why weighted instead of count:
+      count([gym, lift]) = count([pool, security]) = 2
+      But pool+security adds far more value than gym+lift.
+      Weighted score captures this market reality.
+
+    Maximum possible score ≈ 8.5 (all amenities present).
+    In practice, score 0–6 covers 95% of listings.
+    """
+    if pd.isna(amenities_str) or str(amenities_str).strip() == "":
+        return 0.0
+
+    s = str(amenities_str).lower()
+    score = 0.0
+
+    if "pool" in s or "swimming" in s:       score += 3.0
+    if "gym" in s or "fitness" in s:         score += 2.0
+    if "lift" in s or "elevator" in s:       score += 1.0
+    if "club" in s:                           score += 1.0
+    if "security" in s or "24x7" in s:       score += 0.5
+    if "power backup" in s or "powerbackup" in s: score += 0.5
+    if "jogging" in s or "park" in s:        score += 0.5
+
+    return score
+
+
+def parse_avg_rating(rating_val) -> float:
+    """
+    Parse rating to float.
+
+    MagicBricks returns rating as a direct float (e.g. 4.2).
+    No regex needed. NaN → filled with median in pipeline.
+    Handles edge case where rating was stored as '4.2 out of 5' string.
+    """
+    if pd.isna(rating_val):
+        return np.nan
+
+    # If already numeric
+    try:
+        val = float(rating_val)
+        # Handle 0-50 scale edge case
+        if val > 5.0:
+            val = val / 10.0
+        return val if 0 <= val <= 5.0 else np.nan
+    except (ValueError, TypeError):
+        pass
+
+    # Try parsing from string format
+    m = re.search(r"(\d+\.?\d*)", str(rating_val))
+    if m:
+        val = float(m.group(1))
+        return val if val <= 5.0 else val / 10.0
+
+    return np.nan
+
+
+def parse_furnish_score(furnish_str) -> float:
+    """
+    Ordinal furnishing score: unfurnished=0, semi=0.5, furnished=1.0.
+
+    Ordinal (not one-hot) because furnishing has a clear value ordering.
+    0.5 gap between each level matches approximate price premium.
+    """
+    if pd.isna(furnish_str):
+        return 0.0
+
+    s = str(furnish_str).lower().strip()
+    if "semi" in s:
+        return 0.5
+    if "furnished" in s and "un" not in s:
+        return 1.0
+    return 0.0
+
+
+
+
+
+
+
+
+
+
+
+
+def build_nearby_flags(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Binary flags from the nearbylocations text field.
+
+    Keyword matching in a comma-separated list of nearby locations.
+    Simple but effective — MagicBricks categorizes nearby locations
+    into standard types (Metro, Hospital, etc.) so regex is reliable.
+
+    Why binary (not count):
+      Presence/absence matters more than count.
+      'Has metro nearby' adds premium; '3 metros nearby' does not
+      add proportionally more.
+    """
+    col = "nearbylocations"
+    if col not in df.columns and "nearbyLocations" in df.columns:
+        df[col] = df["nearbyLocations"]
+
+    nearby = df.get(col, pd.Series([""] * len(df), index=df.index))
+    nearby = nearby.fillna("").astype(str).str.lower()
+
+    df["has_metro_nearby"]    = nearby.str.contains(r"metro|subway|tube",       regex=True).astype(int)
+    df["has_hospital_nearby"] = nearby.str.contains(r"hospital|clinic|medical", regex=True).astype(int)
+    df["has_school_nearby"]   = nearby.str.contains(r"school|college|university", regex=True).astype(int)
+    df["has_mall_nearby"]     = nearby.str.contains(r"mall|market|shopping",    regex=True).astype(int)
+
+    return df
+
+
+
+
+
+
+
+
+
+
+def build_quality_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Build amenity_score, avg_rating, furnish_score."""
+    if "amenities" in df.columns:
+        df["amenity_score"] = df["amenities"].apply(parse_amenity_score)
+    else:
+        df["amenity_score"] = 0.0
+
+    rating_col = next(
+        (c for c in ["rating", "avg_rating"] if c in df.columns), None
+    )
+    if rating_col:
+        df["avg_rating"] = df[rating_col].apply(parse_avg_rating)
+        median_rating = df["avg_rating"].median()
+        df["avg_rating"] = df["avg_rating"].fillna(median_rating)
+        logger.info(f"  avg_rating: mean={df['avg_rating'].mean():.2f} (from '{rating_col}')")
+    else:
+        df["avg_rating"] = 4.0
+
+    if "furnish" in df.columns:
+        df["furnish_score"] = df["furnish"].apply(parse_furnish_score)
+    else:
+        df["furnish_score"] = 0.0
+
+    return df
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def build_interaction_features(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Interaction features: multiplicative combinations of two signals.
+
+    Why interactions:
+      XGBoost can learn interactions via tree splits, but explicit
+      interaction features give the model a shortcut and often improve
+      MAPE by 2–4% even with tree models.
+
+    area_x_city_encoded: area × city_encoded
+      Captures that price-per-sqft is fundamentally different per city.
+      A 1500sqft flat in Gurgaon (encoded 3.2) × 1500 = 4800.
+      A 1500sqft flat in Kota    (encoded 1.1) × 1500 = 1650.
+      The model can now learn this city-weighted area signal directly.
+      → Was #3 most important feature in v1 experiments.
+
+    area_x_city_tier: area × city_tier_num
+      Similar, but uses within-city tier instead of log-price encoding.
+      Less leaky than city_encoded for inference on new cities.
+
+    area_x_locality: area × locality_encoded
+      Micro-market interaction. Same area, different sector = different price.
+
+    amenity_x_city: amenity_score × city_tier_num
+      Do amenities matter more in premium cities?
+      A pool in Gurgaon adds more absolute value than a pool in Kota.
+      This interaction lets the model learn that.
+
+    Dependencies:
+      These require city_encoded, locality_encoded, city_tier_num
+      to be built FIRST (done in K-Fold encoding step, Day 3).
+      If called before encoding, values will be wrong.
+    """
+    if "city_encoded" in df.columns:
+        df["area_x_city_encoded"] = df["area"] * df["city_encoded"]
+
+    if "city_tier_num" in df.columns:
+        df["area_x_city_tier"] = df["area"] * df["city_tier_num"]
+
+    if "locality_encoded" in df.columns:
+        df["area_x_locality"] = df["area"] * df["locality_encoded"]
+
+    if "amenity_score" in df.columns and "city_tier_num" in df.columns:
+        df["amenity_x_city"] = df["amenity_score"] * df["city_tier_num"]
+
+    return df
+
+
+
+
+
+
+
+
+
