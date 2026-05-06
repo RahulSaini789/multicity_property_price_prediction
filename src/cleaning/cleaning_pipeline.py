@@ -48,7 +48,7 @@ STRING_COLS = ["floor", "age", "furnish", "sector", "amenities",
 
 
 
-def load_all_cities(cities: list = None, data_dir: str = "data/raw") -> pd.DataFrame:
+def load_all_cities(cities: list = None, data_dir: str = "data/raw") -> pd.DataFrame: # type: ignore
     """
     Load and concatenate the latest parquet for each city.
 
@@ -400,14 +400,14 @@ def create_city_tier(df: pd.DataFrame) -> pd.DataFrame:
     for city in df["city"].unique():
         mask   = df["city"] == city
         prices = df.loc[mask, "price"]
-        q33    = prices.quantile(0.33)
-        q67    = prices.quantile(0.67)
+        q33    = prices.quantile(0.33) # type: ignore
+        q67    = prices.quantile(0.67) # type: ignore
 
         df.loc[mask & (df["price"] <= q33), "city_tier"] = "Tier-3"
         df.loc[mask & (df["price"] >  q33) & (df["price"] <= q67), "city_tier"] = "Tier-2"
         df.loc[mask & (df["price"] >  q67), "city_tier"] = "Tier-1"
 
-        dist = df.loc[mask, "city_tier"].value_counts().to_dict()
+        dist = df.loc[mask, "city_tier"].value_counts().to_dict() # type: ignore
         logger.info(f"  {city.upper()}: {dist}")
 
     return df
@@ -500,3 +500,207 @@ def remove_structural_outliers(df: pd.DataFrame, iqr_multiplier: float = 1.5) ->
         f"Remaining: {len(df_clean)}"
     )
     return df_clean
+
+
+
+
+
+
+
+
+
+def fix_data_types(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Final type casting and cleaning after all filter stages.
+
+    Handles:
+    - Non-breaking spaces in string columns (\\xa0 from MagicBricks HTML)
+    - 'nan' string values that should be NaN
+    - Numeric columns clipped to valid ranges and cast to correct dtype
+    - locality column aliased from sector for synthetic cities
+    """
+    # Strip non-breaking spaces from string columns
+    for col in STRING_COLS:
+        if col in df.columns:
+            df[col] = (
+                df[col].astype(str)
+                       .str.replace("\xa0", " ", regex=False)
+                       .str.strip()
+            )
+            df[col] = df[col].replace("nan", np.nan)
+
+    # Numeric columns
+    df["bhk"]      = pd.to_numeric(df["bhk"],      errors="coerce").fillna(2).clip(0, 10).astype(int)
+    df["bathroom"] = pd.to_numeric(df["bathroom"],  errors="coerce")
+    df["bathroom"] = df["bathroom"].fillna(df["bhk"]).clip(0, 8).astype(int)
+    df["balcony"]  = pd.to_numeric(df["balcony"],   errors="coerce").fillna(0).clip(0, 5).astype(int)
+    df["parking"]  = pd.to_numeric(df["parking"],   errors="coerce").fillna(0).clip(0, 5).astype(int)
+    df["floor_pos"]    = pd.to_numeric(df["floor_pos"],    errors="coerce").fillna(0).clip(0, 60).astype(int)
+    df["total_floors"] = pd.to_numeric(df["total_floors"], errors="coerce").fillna(5).clip(1, 60).astype(int)
+
+    df["is_near_coaching"] = pd.to_numeric(
+        df.get("is_near_coaching", 0), errors="coerce"
+    ).fillna(0).astype(int) # type: ignore
+
+    # locality column — alias for sector if missing
+    if "locality" not in df.columns:
+        df["locality"] = df.get("sector", "Unknown")
+
+    logger.info(f"Data types fixed. Shape: {df.shape}")
+    return df
+
+
+
+
+
+
+
+
+
+
+
+def create_target(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Create log-transformed price target column.
+
+    log_price = log1p(price)   where price is in Crores
+
+    Why log transform:
+      Price range: ₹0.15Cr – ₹35Cr = 233x range
+      log1p(0.15) = 0.14,  log1p(35) = 3.58  → 25x range
+      Log-space makes the target distribution approximately Gaussian,
+      which gradient boosting benefits from.
+      Also makes MAPE and RMSE directly comparable across price segments.
+
+    At inference time:
+      predicted_price_cr = expm1(model.predict(X))
+    """
+    df["log_price"] = np.log1p(df["price"])
+    logger.info(
+        f"Target created: log_price — "
+        f"mean={df['log_price'].mean():.3f}, "
+        f"std={df['log_price'].std():.3f}, "
+        f"range=[{df['log_price'].min():.2f}, {df['log_price'].max():.2f}]"
+    )
+    return df
+
+
+
+
+
+
+
+
+
+
+def validate_output(df: pd.DataFrame) -> bool:
+    """
+    Post-cleaning sanity check. Runs AFTER all cleaning stages.
+
+    Returns True if output is valid. Logs all issues found.
+    Does not stop the pipeline — cleaning may have partial data
+    that is still useful for training.
+    """
+    logger.info("\nValidating cleaned output...")
+    issues = []
+
+    required = [
+        "city", "property_type", "price", "area", "bhk",
+        "log_price", "city_tier", "floor_pos", "total_floors",
+    ]
+    for col in required:
+        if col not in df.columns:
+            issues.append(f"MISSING column: {col}")
+
+    for col in ["price", "area", "log_price"]:
+        n = df[col].isna().sum() if col in df.columns else -1
+        if n > 0:
+            issues.append(f"NaN in {col}: {n} rows")
+
+    if "price" in df.columns:
+        if df["price"].min() < 0.01:
+            issues.append(f"Price below ₹1L: {(df['price'] < 0.01).sum()} rows")
+        if df["price"].max() > 100:
+            issues.append(f"Price above ₹100Cr: {(df['price'] > 100).sum()} rows")
+
+    known_types = {"flat", "house", "independent_floor", "plot"}
+    if "property_type" in df.columns:
+        unknown = set(df["property_type"].unique()) - known_types
+        if unknown:
+            issues.append(f"Unknown property_type values: {unknown}")
+
+    if issues:
+        for issue in issues:
+            logger.error(f"  VALIDATION FAIL: {issue}")
+        return False
+
+    logger.info(f"  All validation checks passed. {len(df)} clean rows.")
+    return True
+
+
+
+
+
+
+
+
+def clean_pipeline(
+    cities: list = None, # type: ignore
+    output_path: str = "data/cleaned/combined_cleaned.parquet",
+    iqr_multiplier: float = 1.5,
+) -> pd.DataFrame:
+    """
+    Full cleaning pipeline — runs all stages in order.
+
+    Reads params.yaml for iqr_multiplier if available.
+    Saves output to data/cleaned/combined_cleaned.parquet.
+    """
+    # Read IQR multiplier from params.yaml if available
+    params_path = Path("params.yaml")
+    if params_path.exists():
+        with open(params_path) as f:
+            params = yaml.safe_load(f)
+        iqr_multiplier = params.get("cleaning", {}).get("iqr_multiplier", iqr_multiplier)
+
+    logger.info("=" * 60)
+    logger.info("Layer 5: Data Cleaning Pipeline")
+    logger.info(f"  IQR multiplier: {iqr_multiplier}")
+    logger.info("=" * 60)
+
+    df = load_all_cities(cities)
+    df = standardize_columns(df)
+    df = parse_raw_strings(df)
+    df = apply_business_logic_filters(df)
+    df = create_city_tier(df)
+    df = remove_structural_outliers(df, iqr_multiplier)
+    df = fix_data_types(df)
+    df = create_target(df)
+
+    is_valid = validate_output(df)
+    if not is_valid:
+        logger.warning("Output validation issues found. Proceeding anyway.")
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    df.to_parquet(output_path, index=False)
+
+    logger.info(f"\n✅ Saved {len(df)} clean rows → {output_path}")
+    logger.info(f"   Cities:    {df['city'].value_counts().to_dict()}")
+    logger.info(f"   Types:     {df['property_type'].value_counts().to_dict()}")
+    logger.info(f"   Tiers:     {df['city_tier'].value_counts().to_dict()}")
+    logger.info(f"   Price:     ₹{df['price'].min():.2f}Cr – ₹{df['price'].max():.2f}Cr")
+    logger.info(f"   Area:      {df['area'].min():.0f} – {df['area'].max():.0f} sqft")
+
+    return df
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--cities", nargs="+", default=None)
+    parser.add_argument("--output", default="data/cleaned/combined_cleaned.parquet")
+    args = parser.parse_args()
+    clean_pipeline(cities=args.cities, output_path=args.output)
+
+
+if __name__ == "__main__":
+    main()
