@@ -592,3 +592,333 @@ def train_catboost(
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+def _ensemble_objective(
+    trial: optuna.Trial,
+    X: pd.DataFrame,
+    y: pd.Series,
+    weights: np.ndarray,
+    strata: np.ndarray,
+    best_xgb_params: dict,
+) -> float:
+    """
+    Optuna objective to find optimal ensemble blend weights.
+
+    Treats (w_xgb, w_lgb, w_cat) as hyperparameters.
+    w_cat = 1 - w_xgb - w_lgb is derived (must sum to 1).
+
+    Constraint: each weight between 0.05 and 0.70.
+    Prevents degenerate solutions (one model with weight 0.98).
+
+    Uses 3-fold CV for speed.
+    """
+    w_xgb = trial.suggest_float("w_xgb", 0.15, 0.65)
+    w_lgb = trial.suggest_float("w_lgb", 0.15, 0.65)
+    w_cat = 1.0 - w_xgb - w_lgb
+
+    if w_cat < 0.05 or w_cat > 0.70:
+        return 1.0  # Invalid combination — penalize heavily
+
+    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_STATE)
+    mapes = []
+
+    for train_idx, val_idx in skf.split(X, strata):
+        X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
+        y_tr, y_val = y.iloc[train_idx], y.iloc[val_idx]
+        w_tr        = weights[train_idx]
+
+        # XGBoost
+        xgb_params = {
+            **best_xgb_params,
+            "objective": "reg:squaredlogerror",
+            "random_state": RANDOM_STATE, "n_jobs": -1, "verbosity": 0,
+        }
+        m_xgb = xgb.XGBRegressor(**xgb_params)
+        m_xgb.fit(X_tr, y_tr, sample_weight=w_tr)
+
+        # LightGBM
+        m_lgb = lgb.LGBMRegressor(
+            num_leaves=63, learning_rate=0.05, n_estimators=700,
+            objective="regression", verbose=-1, n_jobs=-1, random_state=RANDOM_STATE,
+        )
+        m_lgb.fit(X_tr, y_tr, sample_weight=w_tr,
+                  callbacks=[lgb.log_evaluation(period=-1)])
+
+        # CatBoost or fallback to LGB
+        if CATBOOST_AVAILABLE:
+            m_cat = CatBoostRegressor(
+                iterations=700, learning_rate=0.05, depth=8,
+                loss_function="MAPE", verbose=False,
+                allow_writing_files=False, random_seed=RANDOM_STATE,
+            )
+            m_cat.fit(X_tr, y_tr, sample_weight=w_tr)
+            pred_cat = m_cat.predict(X_val)
+        else:
+            pred_cat = m_lgb.predict(X_val)
+            w_lgb_eff = w_lgb + w_cat
+            w_cat_eff = 0.0
+        w_lgb_eff = w_lgb if CATBOOST_AVAILABLE else w_lgb + w_cat
+        w_cat_eff = w_cat if CATBOOST_AVAILABLE else 0.0
+
+        pred = (
+            w_xgb    * m_xgb.predict(X_val)
+            + w_lgb_eff * m_lgb.predict(X_val)
+            + w_cat_eff * pred_cat
+        )
+        mapes.append(
+            mean_absolute_percentage_error(np.expm1(y_val), np.expm1(pred))
+        )
+
+    return float(np.mean(mapes))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+def train_final_ensemble(
+    X: pd.DataFrame,
+    y: pd.Series,
+    weights: np.ndarray,
+    strata: np.ndarray,
+    df_full: pd.DataFrame,
+    best_xgb_params: dict,
+) -> dict:
+    """
+    Train the final ensemble with optimized weights.
+
+    Steps:
+    A. Find optimal (w_xgb, w_lgb, w_cat) via 25-trial Optuna study
+    B. Run full 5-fold CV with those weights
+    C. Log everything to MLflow
+    D. Save per-city MAPE breakdown, feature importance
+
+    Returns dict with models, metrics, weights for caller to save.
+    """
+    logger.info(f"\n{'='*50}")
+    logger.info("Finding optimal ensemble weights (25 trials)...")
+
+    weight_study = optuna.create_study(
+        sampler=optuna.samplers.TPESampler(seed=RANDOM_STATE),
+        direction="minimize",
+    )
+    weight_study.optimize(
+        lambda trial: _ensemble_objective(
+            trial, X, y, weights, strata, best_xgb_params
+        ),
+        n_trials=ENSEMBLE_TRIALS,
+        show_progress_bar=True,
+        n_jobs=1,
+    )
+
+    best_w = weight_study.best_params
+    w_xgb  = best_w["w_xgb"]
+    w_lgb  = best_w["w_lgb"]
+    w_cat  = 1.0 - w_xgb - w_lgb
+    logger.info(f"Optimal weights — XGB: {w_xgb:.3f}, LGB: {w_lgb:.3f}, CAT: {w_cat:.3f}")
+
+    # ── Full 5-fold CV with final weights ─────────────────────────────
+    logger.info(f"\nFinal 5-fold CV with ensemble weights...")
+    mlflow.set_experiment("propml-v2-multi-city")
+
+    with mlflow.start_run(
+        run_name=f"ensemble-{datetime.now():%Y%m%d-%H%M}"
+    ) as run:
+
+        skf = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
+        mapes, r2s = [], []
+        city_mapes_all   = {}
+        models_xgb, models_lgb, models_cat = [], [], []
+        feat_importance  = np.zeros(X.shape[1])
+
+        for fold, (train_idx, val_idx) in enumerate(skf.split(X, strata)):
+            X_tr, X_val = X.iloc[train_idx], X.iloc[val_idx]
+            y_tr, y_val = y.iloc[train_idx], y.iloc[val_idx]
+            w_tr        = weights[train_idx]
+
+            # XGBoost
+            xgb_p = {**best_xgb_params,
+                      "objective": "reg:squaredlogerror",
+                      "random_state": RANDOM_STATE, "n_jobs": -1, "verbosity": 0}
+            m_xgb = xgb.XGBRegressor(**xgb_p)
+            m_xgb.fit(X_tr, y_tr, sample_weight=w_tr)
+            models_xgb.append(m_xgb)
+            feat_importance += np.array(m_xgb.feature_importances_)
+
+            # LightGBM
+            m_lgb = lgb.LGBMRegressor(
+                num_leaves=63, learning_rate=0.05, n_estimators=700,
+                min_child_samples=10, subsample=0.8, colsample_bytree=0.8,
+                reg_alpha=0.1, reg_lambda=1.0,
+                objective="regression", verbose=-1, n_jobs=-1,
+                random_state=RANDOM_STATE,
+            )
+            m_lgb.fit(X_tr, y_tr, sample_weight=w_tr,
+                      callbacks=[lgb.log_evaluation(period=-1)])
+            models_lgb.append(m_lgb)
+
+            # CatBoost
+            if CATBOOST_AVAILABLE:
+                m_cat = CatBoostRegressor(
+                    iterations=700, learning_rate=0.05, depth=8,
+                    loss_function="MAPE", verbose=False,
+                    allow_writing_files=False, random_seed=RANDOM_STATE,
+                )
+                m_cat.fit(X_tr, y_tr, sample_weight=w_tr,
+                          eval_set=(X_val, y_val), early_stopping_rounds=50)
+                pred_cat = m_cat.predict(X_val)
+                models_cat.append(m_cat)
+            else:
+                pred_cat = m_lgb.predict(X_val)
+
+            w_lgb_eff = w_lgb if CATBOOST_AVAILABLE else w_lgb + w_cat
+            w_cat_eff = w_cat if CATBOOST_AVAILABLE else 0.0
+
+            y_pred = (
+                w_xgb    * m_xgb.predict(X_val)
+                + w_lgb_eff * m_lgb.predict(X_val)
+                + w_cat_eff * pred_cat
+            )
+
+            fold_mape = mean_absolute_percentage_error(
+                np.expm1(y_val), np.expm1(y_pred)
+            )
+            fold_r2 = r2_score(y_val, y_pred)
+            mapes.append(fold_mape)
+            r2s.append(fold_r2)
+
+            city_breakdown = mape_by_city(y_val.values, y_pred, df_full, val_idx)
+            for city, city_mape in city_breakdown.items():
+                city_mapes_all.setdefault(city, []).append(city_mape)
+
+            logger.info(
+                f"  Fold {fold+1}: MAPE={fold_mape*100:.2f}%  R²={fold_r2:.4f}"
+                f"  | {city_breakdown}"
+            )
+
+        # ── Final metrics ──────────────────────────────────────────────
+        cv_mape = np.mean(mapes) * 100
+        cv_r2   = np.mean(r2s)
+        feat_importance /= CV_FOLDS
+
+        logger.info(f"\nFinal CV MAPE: {cv_mape:.2f}%")
+        logger.info(f"Final CV R²:   {cv_r2:.4f}")
+
+        logger.info("\nMAPE by city:")
+        for city, vals in city_mapes_all.items():
+            logger.info(f"  {city}: {np.mean(vals):.2f}%")
+
+        # ── Feature importance ─────────────────────────────────────────
+        feat_imp_dict = dict(sorted(
+            zip(X.columns, feat_importance.tolist()),
+            key=lambda x: x[1], reverse=True,
+        ))
+        logger.info("\nTop 10 Features:")
+        for i, (feat, imp) in enumerate(list(feat_imp_dict.items())[:10]):
+            bar = "█" * int(imp / feat_importance.max() * 20)
+            logger.info(f"  {i+1:2d}. {feat:25s} {bar} {imp:.4f}")
+
+        # ── MLflow logging ─────────────────────────────────────────────
+        mlflow.log_params({
+            "ensemble_type":       "xgb_lgb_catboost",
+            "w_xgb":               round(w_xgb, 3),
+            "w_lgb":               round(w_lgb, 3),
+            "w_cat":               round(w_cat, 3),
+            "catboost_available":  CATBOOST_AVAILABLE,
+            "cv_folds":            CV_FOLDS,
+            "optuna_trials":       OPTUNA_TRIALS,
+            **{k: round(v, 4) for k, v in best_xgb_params.items()},
+        })
+        mlflow.log_metrics({
+            "cv_mape_pct": float(round(cv_mape, 4)),
+            "cv_r2":       float(round(cv_r2, 4)),
+            **{f"city_mape_{c}": float(round(float(np.mean(v)), 4))
+               for c, v in city_mapes_all.items()},
+        })
+
+        # Feature importance artifact
+        Path(REPORTS_DIR).mkdir(exist_ok=True)
+        fi_path = f"{REPORTS_DIR}/feature_importance.json"
+        with open(fi_path, "w") as f:
+            json.dump({k: round(float(v), 6) for k, v in feat_imp_dict.items()}, f, indent=2)
+        mlflow.log_artifact(fi_path)
+
+        run_id = run.info.run_id
+
+    return {
+        "cv_mape":         cv_mape,
+        "cv_r2":           cv_r2,
+        "models_xgb":      models_xgb,
+        "models_lgb":      models_lgb,
+        "models_cat":      models_cat,
+        "feat_importance": feat_imp_dict,
+        "ensemble_weights": (w_xgb, w_lgb, w_cat),
+        "city_mapes":      {c: round(float(np.mean(v)), 4) for c, v in city_mapes_all.items()},
+        "run_id":          run_id,
+    }
+
+
+
+
+def save_models(results: dict, features: list) -> None:
+    """
+    Save all ensemble models + metadata to models/ directory.
+
+    Files saved:
+      models/models_xgb_ensemble.pkl  — list of 5 XGBoost models (one per fold)
+      models/models_lgb_ensemble.pkl  — list of 5 LightGBM models
+      models/models_cat_ensemble.pkl  — list of 5 CatBoost models
+      models/ensemble_weights.pkl     — (w_xgb, w_lgb, w_cat) tuple
+      models/feature_list.pkl         — ordered feature names list
+      models/version.txt              — semantic version string
+
+    Why 5 models per algorithm (not 1):
+      At inference, prediction = mean(fold_1.predict, ..., fold_5.predict).
+      Ensemble of folds reduces variance vs a single model.
+      Memory cost: 5× but inference speed is still < 200ms.
+    """
+    Path(MODELS_DIR).mkdir(exist_ok=True)
+
+    joblib.dump(results["models_xgb"],       f"{MODELS_DIR}/models_xgb_ensemble.pkl")
+    joblib.dump(results["models_lgb"],       f"{MODELS_DIR}/models_lgb_ensemble.pkl")
+    joblib.dump(results["ensemble_weights"], f"{MODELS_DIR}/ensemble_weights.pkl")
+    joblib.dump(features,                   f"{MODELS_DIR}/feature_list.pkl")
+
+    if results["models_cat"]:
+        joblib.dump(results["models_cat"],   f"{MODELS_DIR}/models_cat_ensemble.pkl")
+
+    # Semantic version: read current, increment patch
+    version_file = f"{MODELS_DIR}/version.txt"
+    if os.path.exists(version_file):
+        curr = open(version_file).read().strip()
+        major, minor, patch = curr.split(".")
+        new_version = f"{major}.{minor}.{int(patch)+1}"
+    else:
+        new_version = "1.0.0"
+
+    with open(version_file, "w") as f:
+        f.write(new_version)
+
+    logger.info(f"Models saved → {MODELS_DIR}/  (version: {new_version})")
+
+
