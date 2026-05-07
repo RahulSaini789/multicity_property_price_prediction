@@ -335,3 +335,260 @@ def xgboost_default(
     cv_r2   = np.mean(r2s)
     logger.info(f"XGBoost Default CV MAPE: {cv_mape:.2f}%  |  R²: {cv_r2:.4f}")
     return cv_mape, cv_r2
+
+
+
+
+
+
+def _xgb_objective(
+    trial: optuna.Trial,
+    X: pd.DataFrame,
+    y: pd.Series,
+    weights: np.ndarray,
+    strata: np.ndarray,
+) -> float:
+    """
+    Optuna objective for XGBoost hyperparameter search.
+
+    Uses 3-fold CV (not 5) for speed — each trial is 3 train/val cycles.
+    TPE sampler learns which parameter regions give good results and
+    focuses sampling there. 100 trials covers more search space than
+    10,000 Grid Search combinations in a fraction of the time.
+
+    Parameter search space rationale:
+      n_estimators 300–1500: low = underfit, high = overfit + slow
+      max_depth 4–12: controls tree complexity
+      learning_rate 0.005–0.15 (log-scale): smaller = better generalization
+      subsample/colsample 0.5–1.0: introduce noise = regularization
+      min_child_weight 1–15: min samples per leaf
+      reg_alpha/lambda: L1/L2 regularization
+      gamma: min loss reduction for split (additional regularization)
+    """
+    params = {
+        "n_estimators":       trial.suggest_int("n_estimators", 300, 1500),
+        "max_depth":          trial.suggest_int("max_depth", 4, 12),
+        "learning_rate":      trial.suggest_float("learning_rate", 0.005, 0.15, log=True),
+        "subsample":          trial.suggest_float("subsample", 0.5, 1.0),
+        "colsample_bytree":   trial.suggest_float("colsample_bytree", 0.5, 1.0),
+        "min_child_weight":   trial.suggest_int("min_child_weight", 1, 15),
+        "reg_alpha":          trial.suggest_float("reg_alpha", 0.0, 2.0),
+        "reg_lambda":         trial.suggest_float("reg_lambda", 0.1, 15.0),
+        "gamma":              trial.suggest_float("gamma", 0.0, 1.0),
+        "objective":          "reg:squaredlogerror",
+        "random_state":       RANDOM_STATE,
+        "n_jobs":             -1,
+        "verbosity":          0,
+    }
+
+    # 3-fold for speed during search
+    skf = StratifiedKFold(n_splits=3, shuffle=True, random_state=RANDOM_STATE)
+    mapes = []
+
+    for train_idx, val_idx in skf.split(X, strata):
+        model = xgb.XGBRegressor(**params)
+        model.fit(X.iloc[train_idx], y.iloc[train_idx], sample_weight=weights[train_idx])
+        y_pred = model.predict(X.iloc[val_idx])
+        mapes.append(
+            mean_absolute_percentage_error(np.expm1(y.iloc[val_idx]), np.expm1(y_pred))
+        )
+
+    return float(np.mean(mapes))
+
+
+def run_optuna_tuning(
+    X: pd.DataFrame,
+    y: pd.Series,
+    weights: np.ndarray,
+    strata: np.ndarray,
+    n_trials: int = OPTUNA_TRIALS,
+) -> tuple:
+    """
+    Run Optuna TPE hyperparameter search for XGBoost.
+
+    Returns (best_params_dict, best_3fold_mape_pct)
+    """
+    logger.info(f"\n{'='*50}")
+    logger.info(f"Optuna Tuning — {n_trials} trials (TPE sampler)")
+
+    study = optuna.create_study(
+        sampler=optuna.samplers.TPESampler(seed=RANDOM_STATE),
+        direction="minimize",
+        study_name="propml_xgb_mape",
+    )
+    study.optimize(
+        lambda trial: _xgb_objective(trial, X, y, weights, strata),
+        n_trials=n_trials,
+        show_progress_bar=True,
+        n_jobs=1,   # n_jobs>1 with TPE causes race conditions
+    )
+
+    best_params  = study.best_params
+    best_mape    = study.best_value * 100
+
+    logger.info(f"Best MAPE (3-fold): {best_mape:.2f}%")
+    logger.info(f"Best params: {best_params}")
+
+    # Save study for reference
+    Path(REPORTS_DIR).mkdir(exist_ok=True)
+    with open(f"{REPORTS_DIR}/optuna_study.json", "w") as f:
+        json.dump({
+            "best_mape_pct": round(best_mape, 3),
+            "best_params":   best_params,
+            "n_trials":      n_trials,
+            "timestamp":     datetime.now().isoformat(),
+        }, f, indent=2)
+
+    return best_params, best_mape
+
+
+
+
+
+
+
+
+
+def train_lightgbm(
+    X: pd.DataFrame,
+    y: pd.Series,
+    weights: np.ndarray,
+    strata: np.ndarray,
+) -> tuple:
+    """
+    LightGBM 5-fold CV — independent from XGBoost.
+
+    Why LightGBM separately:
+      LGB and XGB make different types of errors.
+      LGB uses leaf-wise growth (faster, better on large data).
+      XGB uses level-wise growth (more regularized).
+      Their predictions are weakly correlated → ensemble benefits.
+
+    objective='regression' with metric='mae':
+      Optimizes MAE in log space — closer to MAPE than MSE.
+      CatBoost optimizes MAPE directly; LGB/XGB use this proxy.
+    """
+    logger.info(f"\n{'='*50}")
+    logger.info("LightGBM (Default Parameters)")
+
+    skf = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
+    mapes, r2s = [], []
+
+    lgb_params = {
+        "num_leaves":         63,
+        "learning_rate":      0.05,
+        "n_estimators":       700,
+        "min_child_samples":  10,
+        "subsample":          0.8,
+        "colsample_bytree":   0.8,
+        "reg_alpha":          0.1,
+        "reg_lambda":         1.0,
+        "objective":          "regression",
+        "metric":             "mae",
+        "random_state":       RANDOM_STATE,
+        "verbose":            -1,
+        "n_jobs":             -1,
+    }
+
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, strata)):
+        model = lgb.LGBMRegressor(**lgb_params)
+        model.fit(
+            X.iloc[train_idx], y.iloc[train_idx],
+            sample_weight=weights[train_idx],
+            callbacks=[lgb.log_evaluation(period=-1)],
+        )
+        y_pred = model.predict(X.iloc[val_idx])
+
+        fold_mape = mean_absolute_percentage_error(np.expm1(y.iloc[val_idx]), np.expm1(y_pred)) # type: ignore
+        fold_r2   = r2_score(y.iloc[val_idx], y_pred) # type: ignore
+        mapes.append(fold_mape)
+        r2s.append(fold_r2)
+        logger.info(f"  Fold {fold+1}: MAPE={fold_mape*100:.2f}%  R²={fold_r2:.4f}")
+
+    cv_mape = np.mean(mapes) * 100
+    cv_r2   = np.mean(r2s)
+    logger.info(f"LightGBM CV MAPE: {cv_mape:.2f}%  |  R²: {cv_r2:.4f}")
+    return cv_mape, cv_r2
+
+
+
+
+
+
+
+
+
+
+
+def train_catboost(
+    X: pd.DataFrame,
+    y: pd.Series,
+    weights: np.ndarray,
+    strata: np.ndarray,
+) -> tuple:
+    """
+    CatBoost with direct MAPE loss optimization.
+
+    Why CatBoost is different:
+      XGBoost/LGB optimize MSE in log space as a proxy for MAPE.
+      CatBoost with loss_function='MAPE' directly minimizes the metric
+      we care about. This typically saves 1–2 MAPE points vs the proxy.
+
+      Also: CatBoost's symmetric tree growth is more resistant to
+      overfitting on small datasets, which helps when Kota has
+      fewer listings than Gurgaon.
+
+    early_stopping_rounds=50:
+      Stops training when val MAPE stops improving for 50 rounds.
+      Prevents wasted compute on overfit iterations.
+    """
+    if not CATBOOST_AVAILABLE:
+        logger.warning("CatBoost not installed — skipping")
+        return 999.0, 0.0
+
+    logger.info(f"\n{'='*50}")
+    logger.info("CatBoost (Direct MAPE Optimization)")
+
+    skf = StratifiedKFold(n_splits=CV_FOLDS, shuffle=True, random_state=RANDOM_STATE)
+    mapes, r2s = [], []
+
+    cb_params = {
+        "iterations":         700,
+        "learning_rate":      0.05,
+        "depth":              8,
+        "l2_leaf_reg":        3.0,
+        "subsample":          0.8,
+        "loss_function":      "MAPE",
+        "eval_metric":        "MAPE",
+        "random_seed":        RANDOM_STATE,
+        "verbose":            False,
+        "allow_writing_files": False,
+    }
+
+    for fold, (train_idx, val_idx) in enumerate(skf.split(X, strata)):
+        model = CatBoostRegressor(**cb_params)
+        model.fit(
+            X.iloc[train_idx], y.iloc[train_idx],
+            sample_weight=weights[train_idx],
+            eval_set=(X.iloc[val_idx], y.iloc[val_idx]),
+            early_stopping_rounds=50,
+        )
+        y_pred = model.predict(X.iloc[val_idx])
+
+        fold_mape = mean_absolute_percentage_error(np.expm1(y.iloc[val_idx]), np.expm1(y_pred))
+        fold_r2   = r2_score(y.iloc[val_idx], y_pred)
+        mapes.append(fold_mape)
+        r2s.append(fold_r2)
+        logger.info(f"  Fold {fold+1}: MAPE={fold_mape*100:.2f}%  R²={fold_r2:.4f}")
+
+    cv_mape = np.mean(mapes) * 100
+    cv_r2   = np.mean(r2s)
+    logger.info(f"CatBoost CV MAPE: {cv_mape:.2f}%  |  R²: {cv_r2:.4f}")
+    return cv_mape, cv_r2
+
+
+
+
+
+
+
