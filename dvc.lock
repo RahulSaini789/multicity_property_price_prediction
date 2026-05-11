@@ -116,14 +116,16 @@ stages:
         training.optuna_trials: 100
         training.random_state: 42
         training.tier_weights:
-          Tier-1: 2.0
+          Tier-1: 2.5
           Tier-2: 1.5
           Tier-3: 0.8
     outs:
     - path: models/
-      md5: ef46d4f0cf6509bf2872d0f90b496706.dir
-      size: 103890965
+      hash: md5
+      md5: 0eb1a45f46905e0efdfb52c79b09e6f2.dir
+      size: 104292525
       nfiles: 7
     - path: reports/metrics.json
-      md5: 0ed1daa50b5c2bd60d693d0d876b94fe
-      size: 907
+      hash: md5
+      md5: 2856a402a5639631d02fe00fbe076344
+      size: 906

@@ -1,5 +1,5 @@
 stages:
- 
+
   # ── Stage 1: Scrape ───────────────────────────────────────────────────────
   scrape:
     cmd: python src/ingestion/run_all_cities.py
@@ -12,19 +12,10 @@ stages:
     params:
       - params.yaml:
         - scraping.max_listings_per_city
- 
-  enrich_osm:
-    cmd: python src/features/feature_engineering.py --enrich-osm
-    deps:
-      - src/features/feature_engineering.py
-      - data/raw/
-    outs:
-      - data/osm_cache/
-    params:
-      - params.yaml:
-        - scraping.max_listings_per_city
- 
-  # ── Stage 3: Validate ─────────────────────────────────────────────────────
+
+  # ── Stage 2: Validate ─────────────────────────────────────────────────────
+  # reports/validation/ output forces clean to depend on validate.
+  # DAG: scrape → validate → clean
   validate:
     cmd: python src/validation/validate_schema.py --city all
     deps:
@@ -32,13 +23,15 @@ stages:
       - data/raw/
     outs:
       - reports/validation/
- 
-  # ── Stage 4: Clean ────────────────────────────────────────────────────────
+
+  # ── Stage 3: Clean ────────────────────────────────────────────────────────
+  # reports/validation/ dep forces validate → clean ordering in DAG.
   clean:
     cmd: python src/cleaning/cleaning_pipeline.py
     deps:
       - src/cleaning/cleaning_pipeline.py
       - data/raw/
+      - reports/validation/
     outs:
       - data/cleaned/combined_cleaned.parquet
     params:
@@ -46,8 +39,10 @@ stages:
         - cleaning.iqr_multiplier
         - cleaning.min_price_cr
         - cleaning.max_price_cr
- 
 
+  # ── Stage 4: Featurize ────────────────────────────────────────────────────
+  # If enrich_osm has been run, data/osm_cache/ exists and distances are used.
+  # If not, OSM distance columns default to -1. Pipeline still works either way.
   featurize:
     cmd: python src/features/feature_engineering.py
     deps:
@@ -61,8 +56,8 @@ stages:
         - features.kfold_smoothing
         - features.amenity_weights
         - features.high_floor_threshold
- 
-  # ── Stage 6: Train ────────────────────────────────────────────────────────
+
+  # ── Stage 5: Train ────────────────────────────────────────────────────────
   train:
     cmd: python src/training/train.py --trials 100
     deps:
@@ -82,30 +77,16 @@ stages:
         - gate.max_mape_pct
         - gate.min_r2
 
-  # train:
-  #   cmd: python src/training/train.py
-  #   deps:
-  #     - src/training/train.py
-  #     - data/features/combined_engineered.parquet
-  #     - data/features/feature_list.txt
-  #   outs:
-  #     - models/
-  #   params:
-  #     - params.yaml:
-  #       - training.cv_folds
-  #       - training.optuna_trials
-  #       - training.tier_weights
-  #       - gate.max_mape_pct
-  #       - gate.min_r2
-  #   metrics:
-  #     - reports/metrics.json:
-  #         cache: false
-
-  # analytics:
-  #   cmd: python src/analytics/analytics_engine.py
-  #   deps:
-  #     - src/analytics/analytics_engine.py
-  #     - data/features/combined_engineered.parquet
-  #     - data/cleaned/combined_cleaned.parquet
-  #   outs:
-  #     - reports/analytics/
+  # ── OSM Enrichment (manual stage, run once after fresh scrape) ────────────
+  # Run separately — NOT called by dvc repro:
+  #   dvc repro enrich_osm
+  #
+  # Takes ~30 mins. Cache persists in data/osm_cache/ so re-runs are fast.
+  # After running, call dvc repro featurize train to pick up distances.
+  enrich_osm:
+    cmd: python src/features/feature_engineering.py --enrich-osm
+    deps:
+      - src/features/feature_engineering.py
+      - data/cleaned/combined_cleaned.parquet
+    outs:
+      - data/osm_cache/
