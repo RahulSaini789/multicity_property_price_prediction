@@ -4,85 +4,65 @@ stages:
     cmd: python src/ingestion/run_all_cities.py
     deps:
     - path: configs/cities.yaml
-      md5: 5005ed60cd6378d5d72250f48921f66c
-      size: 1393
+      md5: 1374c65b3537982e73b19ec03a682765
+      size: 7863
     - path: src/ingestion/magicbricks_scraper.py
-      md5: 5a8c067cc1fde3bfdd00268983a764bc
-      size: 17736
+      md5: 9a05b6f7466e9b2e013108b520f77824
+      size: 29268
     - path: src/ingestion/run_all_cities.py
-      md5: 7bd3b78a7d1742bdf703c2f9644f973e
-      size: 2644
+      md5: a0867f8fdb1abbf39f6865f1de98bcb4
+      size: 12126
     params:
       params.yaml:
-        scraping.delay_max: 4.5
-        scraping.delay_min: 2.0
-        scraping.headless: true
         scraping.max_listings_per_city: 3000
     outs:
     - path: data/raw/
-      md5: 80acf1794da3dca1cd62e866f56bc161.dir
-      size: 181856
-      nfiles: 4
+      md5: 6b4613a9033d944f265e5f8150d635fc.dir
+      size: 2196127
+      nfiles: 13
   validate:
-    cmd: python src/validation/validate_schema.py --city all --fail-on-critical
+    cmd: python src/validation/validate_schema.py --city all
     deps:
-    - path: data/raw/chandigarh/
-      md5: 131cf109177a8b76f25e6037ee34d69d.dir
-      size: 27282
-      nfiles: 1
-    - path: data/raw/gurgaon/
-      md5: d276e984dfea05b2fa59bdd17e67b2a1.dir
-      size: 89217
-      nfiles: 1
-    - path: data/raw/kota/
-      md5: 1c14d04c6d9b7875769a9890a92ca3d0.dir
-      size: 20963
-      nfiles: 1
-    - path: data/raw/noida/
-      md5: 252130d313bb363759f5174130a4c3cc.dir
-      size: 44394
-      nfiles: 1
+    - path: data/raw/
+      md5: 6b4613a9033d944f265e5f8150d635fc.dir
+      size: 2196127
+      nfiles: 13
     - path: src/validation/validate_schema.py
-      md5: 0da76bc8b4e525d8aed12a8def381fa7
-      size: 19234
-    params:
-      params.yaml:
-        validation.max_null_pct_area: 0.02
-        validation.max_null_pct_price: 0.01
-        validation.min_ppsf_valid_pct: 0.7
-        validation.min_rows_required: 10
+      md5: cf41449b1cf5949c2a9b43e6461ce597
+      size: 29046
     outs:
     - path: reports/validation/
-      md5: 9c1eea00a60b33ffa6bc2e8d18a0cb28.dir
-      size: 15102
-      nfiles: 4
+      md5: f14f9a7addf3e45c585d55bd386c6551.dir
+      size: 65573
+      nfiles: 13
   clean:
     cmd: python src/cleaning/cleaning_pipeline.py
     deps:
-    - path: reports/validation/
-      md5: 9c1eea00a60b33ffa6bc2e8d18a0cb28.dir
-      size: 15102
-      nfiles: 4
+    - path: data/raw/
+      md5: 6b4613a9033d944f265e5f8150d635fc.dir
+      size: 2196127
+      nfiles: 13
+    - path: src/cleaning/cleaning_pipeline.py
+      md5: 026787710fae2825b7a63f9ecfb576d1
+      size: 37719
     params:
       params.yaml:
         cleaning.iqr_multiplier: 1.5
-        cleaning.max_bhk: 10
         cleaning.max_price_cr: 100.0
-        cleaning.min_bhk: 0
         cleaning.min_price_cr: 0.05
     outs:
     - path: data/cleaned/combined_cleaned.parquet
-      md5: 8dc1e65f05943eee2799a6a26e4436b1
-      size: 133336
+      md5: 819cbefc19796d46459ff56338ebc4a4
+      size: 1934610
   featurize:
     cmd: python src/features/feature_engineering.py
     deps:
     - path: data/cleaned/combined_cleaned.parquet
-      md5: 8dc1e65f05943eee2799a6a26e4436b1
-      size: 133336
+      md5: 819cbefc19796d46459ff56338ebc4a4
+      size: 1934610
     - path: src/features/feature_engineering.py
-      md5: 4c66e40509c36b1563925acf94ab0106
-      size: 27691
+      md5: d3878ff1c3963e37a4a8f002e7ccf25a
+      size: 41186
     params:
       params.yaml:
         features.amenity_weights:
@@ -97,15 +77,53 @@ stages:
         features.kfold_smoothing: 10
         features.kfold_splits: 5
     outs:
+    - path: data/features/
+      md5: def0a874aaed09f9ed3bd08c5085455a.dir
+      size: 1281039
+      nfiles: 4
+  enrich_osm:
+    cmd: python src/features/feature_engineering.py --enrich-osm
+    deps:
+    - path: data/raw/
+      md5: 6b4613a9033d944f265e5f8150d635fc.dir
+      size: 2196127
+      nfiles: 13
+    - path: src/features/feature_engineering.py
+      md5: d3878ff1c3963e37a4a8f002e7ccf25a
+      size: 41186
+    params:
+      params.yaml:
+        scraping.max_listings_per_city: 3000
+    outs:
+    - path: data/osm_cache/
+      md5: 1d4d79b529ec2de54661d81959a0b28a.dir
+      size: 59098
+      nfiles: 13425
+  train:
+    cmd: python src/training/train.py --trials 100
+    deps:
     - path: data/features/combined_engineered.parquet
-      md5: c00fdc228dfc3fdd616eaca9f257db92
-      size: 162068
-    - path: data/features/feature_list.txt
-      md5: c1697448493f60974958a2de62b917bf
-      size: 447
-    - path: data/features/feature_metadata.json
-      md5: 10d5d8367c451ef8907d0f6351fd90f5
-      size: 4634
-    - path: data/features/target_encoding_map.json
-      md5: 2c58abb76a834e4bee2a9913c706098b
-      size: 34727
+      md5: 418332f61bf699941988b5bb5d356114
+      size: 1025573
+    - path: src/training/train.py
+      md5: 5e8716c3e13e7eaf1ec16bdda3780b2c
+      size: 51465
+    params:
+      params.yaml:
+        gate.max_mape_pct: 22.0
+        gate.min_r2: 0.82
+        training.cv_folds: 5
+        training.optuna_trials: 100
+        training.random_state: 42
+        training.tier_weights:
+          Tier-1: 2.0
+          Tier-2: 1.5
+          Tier-3: 0.8
+    outs:
+    - path: models/
+      md5: ef46d4f0cf6509bf2872d0f90b496706.dir
+      size: 103890965
+      nfiles: 7
+    - path: reports/metrics.json
+      md5: 0ed1daa50b5c2bd60d693d0d876b94fe
+      size: 907

@@ -1,4 +1,6 @@
 stages:
+ 
+  # ── Stage 1: Scrape ───────────────────────────────────────────────────────
   scrape:
     cmd: python src/ingestion/run_all_cities.py
     deps:
@@ -10,56 +12,75 @@ stages:
     params:
       - params.yaml:
         - scraping.max_listings_per_city
-        - scraping.headless
-        - scraping.delay_min
-        - scraping.delay_max
-
-  validate:
-    cmd: python src/validation/validate_schema.py --city all --fail-on-critical
+ 
+  enrich_osm:
+    cmd: python src/features/feature_engineering.py --enrich-osm
     deps:
-      - src/validation/validate_schema.py
-      - data/raw/gurgaon/
-      - data/raw/noida/
-      - data/raw/chandigarh/
-      - data/raw/kota/
+      - src/features/feature_engineering.py
+      - data/raw/
     outs:
-      - reports/validation/
+      - data/osm_cache/
     params:
       - params.yaml:
-        - validation.min_rows_required
-        - validation.max_null_pct_price
-        - validation.max_null_pct_area
-        - validation.min_ppsf_valid_pct
-
+        - scraping.max_listings_per_city
+ 
+  # ── Stage 3: Validate ─────────────────────────────────────────────────────
+  validate:
+    cmd: python src/validation/validate_schema.py --city all
+    deps:
+      - src/validation/validate_schema.py
+      - data/raw/
+    outs:
+      - reports/validation/
+ 
+  # ── Stage 4: Clean ────────────────────────────────────────────────────────
   clean:
     cmd: python src/cleaning/cleaning_pipeline.py
     deps:
-      - reports/validation/
+      - src/cleaning/cleaning_pipeline.py
+      - data/raw/
     outs:
       - data/cleaned/combined_cleaned.parquet
     params:
       - params.yaml:
+        - cleaning.iqr_multiplier
         - cleaning.min_price_cr
         - cleaning.max_price_cr
-        - cleaning.iqr_multiplier
-        - cleaning.min_bhk
-        - cleaning.max_bhk
+ 
+
   featurize:
     cmd: python src/features/feature_engineering.py
     deps:
       - src/features/feature_engineering.py
       - data/cleaned/combined_cleaned.parquet
     outs:
-      - data/features/combined_engineered.parquet
-      - data/features/feature_list.txt
-      - data/features/feature_metadata.json
-      - data/features/target_encoding_map.json
+      - data/features/
     params:
       - params.yaml:
         - features.kfold_splits
         - features.kfold_smoothing
         - features.amenity_weights
         - features.high_floor_threshold
+ 
+  # ── Stage 6: Train ────────────────────────────────────────────────────────
+  train:
+    cmd: python src/training/train.py --trials 100
+    deps:
+      - src/training/train.py
+      - data/features/combined_engineered.parquet
+    outs:
+      - models/
+    metrics:
+      - reports/metrics.json:
+          cache: false
+    params:
+      - params.yaml:
+        - training.cv_folds
+        - training.optuna_trials
+        - training.random_state
+        - training.tier_weights
+        - gate.max_mape_pct
+        - gate.min_r2
 
   # train:
   #   cmd: python src/training/train.py

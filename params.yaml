@@ -1,6 +1,6 @@
 # ─── Scraping ────────────────────────────────────────────────────────
 scraping:
-  max_listings_per_city: 200
+  max_listings_per_city: 3000
   headless: true
   delay_min: 2.0
   delay_max: 4.5
@@ -46,8 +46,8 @@ training:
   optuna_ensemble_trials: 25
   random_state: 42
   tier_weights:
-    Tier-1: 2.0
-    Tier-2: 1.0
+    Tier-1: 2.5
+    Tier-2: 1.5
     Tier-3: 0.8
 
 # ─── Production Gate ─────────────────────────────────────────────────

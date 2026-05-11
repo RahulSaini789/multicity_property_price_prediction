@@ -1,0 +1,40 @@
+{
+  "cv_mape": 20.3091,
+  "cv_r2": 0.9321,
+  "production_gate": "PASS",
+  "mlflow_run_id": "45b79f4a2e764022a0184c67a524d62a",
+  "timestamp": "2026-05-11T08:12:16.223937",
+  "model_type": "ensemble_xgb_lgb_catboost",
+  "baseline_ridge_mape": 30.4266,
+  "improvement_vs_baseline": 10.1175,
+  "ensemble_weights": {
+    "xgb": 0.483,
+    "lgb": 0.159,
+    "cat": 0.358
+  },
+  "n_rows": 29821,
+  "n_cities": 13,
+  "feature_count": 53,
+  "city_mapes": {
+    "gurgaon": 21.126,
+    "noida": 20.724,
+    "chandigarh": 26.338,
+    "kota": 24.258,
+    "delhi": 22.568,
+    "mumbai": 17.328,
+    "bangalore": 18.958,
+    "chennai": 22.22,
+    "pune": 15.506,
+    "hyderabad": 17.14,
+    "ahmedabad": 16.072,
+    "jaipur": 28.878,
+    "indore": 21.764
+  },
+  "tier_weights": {
+    "Tier-1": 2.0,
+    "Tier-2": 1.5,
+    "Tier-3": 0.8
+  },
+  "cv_folds": 5,
+  "optuna_trials": 100
+}

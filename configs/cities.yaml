@@ -1,27 +1,160 @@
+# configs/cities.yaml
+# MagicBricks scraping config for all PropML cities
+#
+# price_bounds_cr:  [min, max] in Crores — realistic range for this city
+# ppsf_bounds:      [min, max] price per sqft in ₹ — for validation
+# area_bounds_sqft: [min, max] sqft — for validation
+# tier:             1 (budget), 2 (mid), 3 (premium) — for model feature
+# annual_income:    median annual household income ₹ — for EMI affordability
+# appreciation_pct: annual price appreciation (NHB Residex based)
+# coaching_city:    true if has major coaching institutes (Kota pattern)
+
+# ── Tier 3: Premium metros ────────────────────────────────────────────────────
+
 gurgaon:
-  url_slug: gurgaon-all-residential
-  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Gurgaon
-  price_bounds: [500000, 600000000]
-  area_bounds: [200, 20000]
-  ppsf_bounds: [1500, 45000]
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Gurgaon&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.10, 60.0]
+  ppsf_bounds:       [1500, 45000]
+  area_bounds_sqft:  [100, 20000]
+  tier:              3
+  annual_income:     1200000
+  appreciation_pct:  0.065
+  coaching_city:     false
+  city_aliases:      ["gurugram", "dlf", "cyber city", "sohna road"]
 
 noida:
-  url_slug: noida-all-residential
-  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Noida
-  price_bounds: [300000, 400000000]
-  area_bounds: [200, 15000]
-  ppsf_bounds: [2000, 28000]
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Noida&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.10, 40.0]
+  ppsf_bounds:       [2000, 28000]
+  area_bounds_sqft:  [100, 15000]
+  tier:              3
+  annual_income:     900000
+  appreciation_pct:  0.058
+  coaching_city:     false
+  city_aliases:      ["greater noida", "noida extension", "noida west"]
+
+delhi:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=New+Delhi&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.20, 80.0]
+  ppsf_bounds:       [3000, 50000]
+  area_bounds_sqft:  [100, 15000]
+  tier:              3
+  annual_income:     1000000
+  appreciation_pct:  0.060
+  coaching_city:     false
+  city_aliases:      ["new delhi", "dwarka", "rohini", "south delhi", "west delhi"]
+
+mumbai:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Mumbai&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot"
+  price_bounds_cr:   [0.30, 150.0]
+  ppsf_bounds:       [8000, 80000]
+  area_bounds_sqft:  [100, 8000]
+  tier:              3
+  annual_income:     1500000
+  appreciation_pct:  0.070
+  coaching_city:     false
+  city_aliases:      ["bombay", "bandra", "andheri", "powai", "thane", "navi mumbai"]
+
+bangalore:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Bangalore&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.15, 40.0]
+  ppsf_bounds:       [4000, 30000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              3
+  annual_income:     1200000
+  appreciation_pct:  0.080
+  coaching_city:     false
+  city_aliases:      ["bengaluru", "whitefield", "koramangala", "hsr layout", "electronic city"]
+
+chennai:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Chennai&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.15, 30.0]
+  ppsf_bounds:       [3500, 25000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              3
+  annual_income:     900000
+  appreciation_pct:  0.055
+  coaching_city:     false
+  city_aliases:      ["madras", "adyar", "anna nagar", "velachery", "omr"]
+
+pune:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Pune&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.15, 30.0]
+  ppsf_bounds:       [3000, 22000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              3
+  annual_income:     900000
+  appreciation_pct:  0.065
+  coaching_city:     false
+  city_aliases:      ["kothrud", "baner", "hinjewadi", "wakad", "kharadi"]
+
+hyderabad:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Hyderabad&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.15, 30.0]
+  ppsf_bounds:       [3000, 22000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              3
+  annual_income:     900000
+  appreciation_pct:  0.070
+  coaching_city:     false
+  city_aliases:      ["secunderabad", "gachibowli", "hitech city", "kukatpally"]
+
+# ── Tier 2: Mid-tier metros ───────────────────────────────────────────────────
 
 chandigarh:
-  url_slug: chandigarh-all-residential
-  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Chandigarh
-  price_bounds: [500000, 300000000]
-  area_bounds: [300, 15000]
-  ppsf_bounds: [1500, 22000]
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Chandigarh&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.15, 25.0]
+  ppsf_bounds:       [1500, 22000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              2
+  annual_income:     700000
+  appreciation_pct:  0.045
+  coaching_city:     false
+  city_aliases:      ["mohali", "panchkula", "tricity", "zirakpur"]
+
+ahmedabad:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Ahmedabad&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.10, 20.0]
+  ppsf_bounds:       [2500, 18000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              2
+  annual_income:     700000
+  appreciation_pct:  0.060
+  coaching_city:     false
+  city_aliases:      ["bopal", "prahlad nagar", "sg highway", "satellite"]
+
+jaipur:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Jaipur&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.08, 15.0]
+  ppsf_bounds:       [2000, 20000]
+  area_bounds_sqft:  [100, 10000]
+  tier:              2
+  annual_income:     600000
+  appreciation_pct:  0.055
+  coaching_city:     false
+  city_aliases:      ["pink city", "malviya nagar", "vaishali nagar", "mansarovar"]
+
+# ── Tier 1: Budget / Coaching cities ─────────────────────────────────────────
 
 kota:
-  url_slug: kota-all-residential
-  base_url: https://www.magicbricks.com/property-for-sale/residential-real-estate?proptype=Multistorey-Apartment,Builder-Floor-Apartment,Penthouse,Studio-Apartment,Residential-House,Villa&cityName=Kota
-  price_bounds: [200000, 100000000]
-  area_bounds: [200, 10000]
-  ppsf_bounds: [800, 12000]
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Kota&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.04, 8.0]
+  ppsf_bounds:       [800, 12000]
+  area_bounds_sqft:  [100, 8000]
+  tier:              1
+  annual_income:     400000
+  appreciation_pct:  0.038
+  coaching_city:     true
+  coaching_hubs:     ["allen", "resonance", "vedanta", "aakash", "coaching hub", "coaching zone"]
+  city_aliases:      ["rajasthan", "kota rajasthan"]
+
+indore:
+  base_url: "https://www.magicbricks.com/property-for-sale/residential-real-estate?cityName=Indore&proptype=Multistorey-Apartment,Builder-Floor-Apartment,Residential-House,Residential-Plot,Floor-Apartment"
+  price_bounds_cr:   [0.06, 12.0]
+  ppsf_bounds:       [2000, 15000]
+  area_bounds_sqft:  [100, 8000]
+  tier:              1
+  annual_income:     500000
+  appreciation_pct:  0.050
+  coaching_city:     false
+  city_aliases:      ["vijay nagar", "palasia", "super corridor"]

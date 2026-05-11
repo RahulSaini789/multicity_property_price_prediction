@@ -179,4 +179,4 @@ class TestPricePerSqft:
         v = SchemaValidator(df, "gurgaon")
         r = v.run()
         ppsf_check = next((c for c in r["checks"] if c["name"] == "price_per_sqft"), None)
-        assert ppsf_check["status"] in ("WARNING", "CRITICAL")
+        assert ppsf_check["status"] in ("WARNING", "CRITICAL") # type: ignore

@@ -70,3 +70,4 @@ secrets/
 .pytest_cache/
 .coverage
 htmlcov/
+/models

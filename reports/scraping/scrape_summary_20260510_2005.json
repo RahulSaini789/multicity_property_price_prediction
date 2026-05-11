@@ -1,0 +1,233 @@
+{
+  "scraped_at": "2026-05-10T20:05:13.121643",
+  "total_records": 33354,
+  "total_elapsed_s": 6792.0,
+  "cities_success": [
+    "gurgaon",
+    "noida",
+    "chandigarh",
+    "kota",
+    "delhi",
+    "mumbai",
+    "bangalore",
+    "chennai",
+    "pune",
+    "hyderabad",
+    "ahmedabad",
+    "jaipur",
+    "indore"
+  ],
+  "cities_failed": [],
+  "n_success": 13,
+  "n_failed": 0,
+  "results": [
+    {
+      "city": "gurgaon",
+      "status": "success",
+      "records": 2990,
+      "path": "data\\raw\\gurgaon\\magicbricks_gurgaon_20260510.parquet",
+      "elapsed_s": 573.0,
+      "property_types": {
+        "flat": 2087,
+        "independent_floor": 555,
+        "plot": 213,
+        "house": 135
+      },
+      "amenity_filled": 2166,
+      "nearby_filled": 2408,
+      "lat_filled": 2925
+    },
+    {
+      "city": "noida",
+      "status": "success",
+      "records": 2275,
+      "path": "data\\raw\\noida\\magicbricks_noida_20260510.parquet",
+      "elapsed_s": 429.4,
+      "property_types": {
+        "flat": 1934,
+        "independent_floor": 117,
+        "house": 114,
+        "plot": 110
+      },
+      "amenity_filled": 1635,
+      "nearby_filled": 1848,
+      "lat_filled": 2191
+    },
+    {
+      "city": "chandigarh",
+      "status": "success",
+      "records": 640,
+      "path": "data\\raw\\chandigarh\\magicbricks_chandigarh_20260510.parquet",
+      "elapsed_s": 145.2,
+      "property_types": {
+        "flat": 278,
+        "house": 204,
+        "plot": 80,
+        "independent_floor": 78
+      },
+      "amenity_filled": 195,
+      "nearby_filled": 315,
+      "lat_filled": 594
+    },
+    {
+      "city": "kota",
+      "status": "success",
+      "records": 564,
+      "path": "data\\raw\\kota\\magicbricks_kota_20260510.parquet",
+      "elapsed_s": 117.7,
+      "property_types": {
+        "house": 226,
+        "flat": 170,
+        "plot": 158,
+        "independent_floor": 10
+      },
+      "amenity_filled": 146,
+      "nearby_filled": 2,
+      "lat_filled": 491
+    },
+    {
+      "city": "delhi",
+      "status": "success",
+      "records": 2965,
+      "path": "data\\raw\\delhi\\magicbricks_delhi_20260510.parquet",
+      "elapsed_s": 583.2,
+      "property_types": {
+        "flat": 1292,
+        "independent_floor": 1193,
+        "house": 374,
+        "plot": 106
+      },
+      "amenity_filled": 1475,
+      "nearby_filled": 2157,
+      "lat_filled": 2781
+    },
+    {
+      "city": "mumbai",
+      "status": "success",
+      "records": 3000,
+      "path": "data\\raw\\mumbai\\magicbricks_mumbai_20260510.parquet",
+      "elapsed_s": 528.1,
+      "property_types": {
+        "flat": 2965,
+        "house": 18,
+        "independent_floor": 9,
+        "plot": 8
+      },
+      "amenity_filled": 1623,
+      "nearby_filled": 2757,
+      "lat_filled": 2945
+    },
+    {
+      "city": "bangalore",
+      "status": "success",
+      "records": 2994,
+      "path": "data\\raw\\bangalore\\magicbricks_bangalore_20260510.parquet",
+      "elapsed_s": 600.4,
+      "property_types": {
+        "flat": 1936,
+        "plot": 505,
+        "house": 456,
+        "independent_floor": 97
+      },
+      "amenity_filled": 1893,
+      "nearby_filled": 2316,
+      "lat_filled": 2840
+    },
+    {
+      "city": "chennai",
+      "status": "success",
+      "records": 2998,
+      "path": "data\\raw\\chennai\\magicbricks_chennai_20260510.parquet",
+      "elapsed_s": 566.9,
+      "property_types": {
+        "flat": 1508,
+        "plot": 906,
+        "house": 426,
+        "independent_floor": 158
+      },
+      "amenity_filled": 1293,
+      "nearby_filled": 2160,
+      "lat_filled": 2822
+    },
+    {
+      "city": "pune",
+      "status": "success",
+      "records": 2998,
+      "path": "data\\raw\\pune\\magicbricks_pune_20260510.parquet",
+      "elapsed_s": 567.5,
+      "property_types": {
+        "flat": 2876,
+        "plot": 81,
+        "house": 32,
+        "independent_floor": 9
+      },
+      "amenity_filled": 1486,
+      "nearby_filled": 2727,
+      "lat_filled": 2986
+    },
+    {
+      "city": "hyderabad",
+      "status": "success",
+      "records": 2990,
+      "path": "data\\raw\\hyderabad\\magicbricks_hyderabad_20260510.parquet",
+      "elapsed_s": 563.2,
+      "property_types": {
+        "flat": 1813,
+        "house": 573,
+        "plot": 553,
+        "independent_floor": 51
+      },
+      "amenity_filled": 1791,
+      "nearby_filled": 2247,
+      "lat_filled": 2832
+    },
+    {
+      "city": "ahmedabad",
+      "status": "success",
+      "records": 2995,
+      "path": "data\\raw\\ahmedabad\\magicbricks_ahmedabad_20260510.parquet",
+      "elapsed_s": 556.3,
+      "property_types": {
+        "flat": 2410,
+        "house": 410,
+        "plot": 124,
+        "independent_floor": 51
+      },
+      "amenity_filled": 1902,
+      "nearby_filled": 2299,
+      "lat_filled": 2760
+    },
+    {
+      "city": "jaipur",
+      "status": "success",
+      "records": 2981,
+      "path": "data\\raw\\jaipur\\magicbricks_jaipur_20260510.parquet",
+      "elapsed_s": 606.5,
+      "property_types": {
+        "flat": 1232,
+        "plot": 1062,
+        "house": 461,
+        "independent_floor": 226
+      },
+      "amenity_filled": 912,
+      "nearby_filled": 1436,
+      "lat_filled": 2741
+    },
+    {
+      "city": "indore",
+      "status": "success",
+      "records": 2964,
+      "path": "data\\raw\\indore\\magicbricks_indore_20260510.parquet",
+      "elapsed_s": 593.7,
+      "property_types": {
+        "plot": 1349,
+        "flat": 815,
+        "house": 694,
+        "independent_floor": 106
+      },
+      "amenity_filled": 744,
+      "nearby_filled": 1142,
+      "lat_filled": 2602
+    }
+  ]
+}
