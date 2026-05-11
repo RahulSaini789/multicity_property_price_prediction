@@ -1,5 +1,5 @@
 {
-  "best_mape_pct": 20.479,
+  "best_mape_pct": 20.483,
   "best_params": {
     "n_estimators": 1386,
     "max_depth": 11,
@@ -13,5 +13,5 @@
   },
   "n_trials": 100,
   "cv_folds": 5,
-  "timestamp": "2026-05-11T07:49:29.156172"
+  "timestamp": "2026-05-11T10:54:54.911945"
 }
