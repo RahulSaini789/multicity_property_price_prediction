@@ -1,6 +1,51 @@
-# Dockerfile.api — filled in during Week 7 (L8 FastAPI + Docker)
-# Multi-stage build: builder → production
-# Target image size: < 700MB
+# ── Stage 1: Builder ────────────────────────────────────
 FROM python:3.11-slim AS builder
+
+# Build tools needed to compile C extensions (XGBoost, LightGBM)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /build
-# Full implementation added in Week 7
+
+# Use virtualenv instead of --user — cleaner to copy in stage 2
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy requirements first — Docker layer cache:
+# If requirements.txt doesn't change, pip install is cached
+COPY requirements-render.txt .
+RUN pip install --no-cache-dir -r requirements-render.txt
+
+# ── Stage 2: Production ─────────────────────────────────
+FROM python:3.11-slim
+
+# Runtime dependencies only (no build tools)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy venv from builder (no pip, no gcc, no headers)
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy application code
+COPY src/serving/ ./src/serving/
+COPY configs/     ./configs/
+
+# Create non-root user for security
+# Running as root in Docker is a security risk
+RUN useradd --create-home --shell /bin/bash --uid 1000 propml && \
+    chown -R propml:propml /app
+USER propml
+
+# Health check — Docker marks container unhealthy if this fails
+# start_period=60s: model loading takes 30–40s on cold start
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+EXPOSE 8000
+
+CMD ["uvicorn", "src.serving.main:app", "--host", "0.0.0.0", "--port", "8000"]
