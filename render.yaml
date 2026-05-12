@@ -7,11 +7,11 @@ services:
     buildCommand: pip install -r requirements-render.txt
     startCommand: uvicorn src.serving.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.8"
       - key: MODELS_DIR
         value: models
       - key: ANALYTICS_DIR
         value: reports/analytics
-      - key: PYTHON_VERSION
-        value: 3.11.0
     healthCheckPath: /health
     autoDeploy: true
