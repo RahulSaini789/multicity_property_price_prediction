@@ -1,11 +1,108 @@
-# docker-compose.yml — filled in during Week 7 (L8 FastAPI + Docker)
-# Services: api, mlflow, postgres, grafana
+# ════════════════════════════════════════════════════════
+#  PropML — Docker Compose full stack
+#  docker/docker-compose.yml
+#
+#  Start: docker-compose -f docker/docker-compose.yml up --build
+#  Stop:  docker-compose -f docker/docker-compose.yml down
+#
+#  Services:
+#    api      → :8000  (FastAPI prediction server)
+#    mlflow   → :5000  (Experiment tracking UI)
+#    postgres → :5432  (MLflow backend + future prediction store)
+#    grafana  → :3001  (Monitoring dashboard)
+# ════════════════════════════════════════════════════════
+
 version: "3.9"
+
 services:
+
+  # ── PostgreSQL ────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: propml-postgres
+    environment:
+      POSTGRES_DB:       propml
+      POSTGRES_USER:     propml
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-propml_dev_123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [CMD, pg_isready, -U, propml]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  # ── MLflow Tracking ───────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.11.0
+    container_name: propml-mlflow
+    ports:
+      - "5000:5000"
+    entrypoint: /bin/sh
+    command: >
+      -c "pip install psycopg2-binary &&
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql://propml:${DB_PASSWORD:-propml_dev_123}@postgres:5432/propml
+      --default-artifact-root /mlflow-artifacts
+      --serve-artifacts"
+    volumes:
+      - mlflow_artifacts:/mlflow-artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── FastAPI ───────────────────────────────────────────
   api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
+    container_name: propml-api
     ports:
       - "8000:8000"
-    # Full implementation added in Week 7
+    environment:
+      HF_MODEL_REPO:    ${HF_MODEL_REPO:-YOUR_USERNAME/propml-models}
+      MODELS_DIR:       models
+      ANALYTICS_DIR:    reports/analytics
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Read-only mounts: models and data from host
+      # In production: models downloaded from HF Hub at startup
+      - ../data/features:/app/data/features:ro
+      - ../models:/app/models:ro
+      - ../reports/analytics:/app/reports/analytics:ro
+    healthcheck:
+      test: [CMD, curl, -f, "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Grafana ───────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: propml-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER:     admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mlflow_artifacts:
+  grafana_data:
