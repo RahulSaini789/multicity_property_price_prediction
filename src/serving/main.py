@@ -22,6 +22,7 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from typing import Optional
+import pathlib
 
 import joblib
 import numpy as np
@@ -38,11 +39,10 @@ logger = logging.getLogger(__name__)
 
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
-MODELS_DIR    = os.getenv("MODELS_DIR",    "models")
-ANALYTICS_DIR = os.getenv("ANALYTICS_DIR", "reports/analytics")
-# Phase 3: encoding map copied to models/ by train.py
-ENC_MAP_PATH  = os.path.join(MODELS_DIR, "target_encoding_map.json")
-ENC_MAP_PATH_FALLBACK = "data/features/target_encoding_map.json"
+MODELS_DIR    = pathlib.Path(os.getenv("MODELS_DIR", "models"))
+ANALYTICS_DIR = pathlib.Path(os.getenv("ANALYTICS_DIR", "reports/analytics"))
+ENC_MAP_PATH  = MODELS_DIR / "target_encoding_map.json"
+ENC_MAP_PATH_FALLBACK = pathlib.Path("data/features/target_encoding_map.json")
 
 
 # ── CatBoost optional ─────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ CITY_CV_MAPE = {
 
 def _load_pkl(filename: str):
     """Load a joblib pkl from MODELS_DIR. Returns None if missing."""
-    path = os.path.join(MODELS_DIR, filename)
+    path = MODELS_DIR / filename
     if os.path.exists(path):
         try:
             obj = joblib.load(path)
@@ -167,12 +167,12 @@ def _init_shap(models_xgb: list, feature_list: list) -> tuple:
         model = models_xgb[0]
         bg_df = None
 
-        for path in [
-            "data/features/combined_engineered.parquet",
-            "data/cleaned/combined_cleaned.parquet",
+        for p in [
+            pathlib.Path("data/features/combined_engineered.parquet"),
+            pathlib.Path("data/cleaned/combined_cleaned.parquet"),
         ]:
-            if os.path.exists(path):
-                raw  = pd.read_parquet(path)
+            if p.exists():
+                raw  = pd.read_parquet(p)
                 cols = [f for f in feature_list if f in raw.columns]
                 if cols:
                     sample = (
@@ -222,7 +222,7 @@ def download_models_from_hf():
         logger.info("HF_MODEL_REPO not set — skipping HF download (local mode)")
         return
 
-    models_dir = Path(MODELS_DIR)
+    models_dir = pathlib.Path(MODELS_DIR)
     models_dir.mkdir(exist_ok=True)
 
     # Check if models already exist (cached from previous warm request)
@@ -259,7 +259,7 @@ def download_models_from_hf():
                 # Move target_encoding_map.json to correct location
                 if filename == "target_encoding_map.json":
                     import shutil
-                    Path(ENC_MAP_PATH).parent.mkdir(parents=True, exist_ok=True)
+                    pathlib.Path(ENC_MAP_PATH).parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy(local_path, ENC_MAP_PATH)
 
             except Exception as e:
@@ -310,9 +310,10 @@ def load_models():
         )
 
     # Load encoding map — check models/ first (copied by train.py), then fallback
-    enc_path = ENC_MAP_PATH if os.path.exists(ENC_MAP_PATH) else ENC_MAP_PATH_FALLBACK
-    if os.path.exists(enc_path):
+    enc_path = ENC_MAP_PATH if ENC_MAP_PATH.exists() else ENC_MAP_PATH_FALLBACK
+    if enc_path.exists():
         with open(enc_path) as f:
+            STATE["encoding_map"] = json.load(f)
             STATE["encoding_map"] = json.load(f)
         n_loc = len(STATE["encoding_map"].get("locality_map", {}))
         logger.info(f"  Encoding map: {n_loc} localities from {enc_path}")
