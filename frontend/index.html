@@ -993,16 +993,34 @@ async function doPred() {
     // Show the result box with animation
     resultBox.classList.add('show');
 
-  } catch (error) {
+    } catch (error) {
     console.error("Prediction failed:", error);
-    alert("Connection to Live API failed. Server might be waking up or check CORS policy.");
+    if (!doPred._retrying) {
+      doPred._retrying = true;
+      btn.innerHTML = '⏳ Server waking up... retrying (1/2)';
+      btn.style.opacity = '0.7';
+      btn.disabled = true;
+      setTimeout(async () => {
+        doPred._retrying = false;
+        await doPred();
+      }, 8000);
+      return; // finally ko skip karo retry case mein
+    } else {
+      doPred._retrying = false;
+      const priceCr = ((payload.area_sqft * 8500 *
+        ({gurgaon:1.0,noida:0.7,chandigarh:0.85,kota:0.32}[payload.city]||1.0)) / 1e7);
+      document.getElementById('res-price').textContent = `₹ ${priceCr.toFixed(2)} Cr (Demo)`;
+      document.getElementById('res-range').textContent = `API offline — demo estimate only`;
+      resultBox.classList.add('show');
+    }
   } finally {
-    // 8. Restore button state
-    btn.innerHTML = originalBtnText;
-    btn.style.opacity = '1';
-    btn.disabled = false;
+    // Only runs on success or final failure (not during retry wait)
+    if (!doPred._retrying) {
+      btn.innerHTML = originalBtnText;
+      btn.style.opacity = '1';
+      btn.disabled = false;
+    }
   }
-}
 
 /* ─── REVEAL ─── */
 const io = new IntersectionObserver((entries)=>{
@@ -1364,7 +1382,7 @@ function buildCityMape(){
       }
     }
   });
-}
+}}
 
 function dashSetCity(city,el){
   dashCity=city;
