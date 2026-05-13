@@ -889,8 +889,8 @@ def validate_features(df: pd.DataFrame, features: list) -> bool:
         if series.dtype == object:
             issues.append(f"DTYPE: '{feat}' is object/string (must be numeric)")
 
-        if np.isinf(series.replace([np.inf, -np.inf], np.nan).dropna()).any():
-            issues.append(f"INF: '{feat}' contains infinite values")
+        if np.isinf(df[feat].values).any():
+            issues.append(f"Inf values in {feat}")
 
     if issues:
         for issue in issues:

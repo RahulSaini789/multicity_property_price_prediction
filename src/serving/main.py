@@ -26,7 +26,7 @@ from typing import Optional
 import joblib
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Path
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -204,6 +204,75 @@ def _init_shap(models_xgb: list, feature_list: list) -> tuple:
         return None, "disabled"
 
 
+def download_models_from_hf():
+    """
+    Download model pkl files from HuggingFace Hub at startup.
+
+    Called when running on Render (HF_MODEL_REPO env var is set).
+    Skipped when running locally (models/ folder already has pkl files).
+
+    Why download at startup instead of baking into Docker image:
+      Model files are 200–500MB each. Including in Docker image would:
+      a) Make the image 2GB+ (Render free tier limit is 512MB RAM)
+      b) Require Docker rebuild on every model update
+      HF Hub download: model update = just run upload_to_hf.py + redeploy.
+    """
+    hf_repo = os.getenv("HF_MODEL_REPO")
+    if not hf_repo:
+        logger.info("HF_MODEL_REPO not set — skipping HF download (local mode)")
+        return
+
+    models_dir = Path(MODELS_DIR)
+    models_dir.mkdir(exist_ok=True)
+
+    # Check if models already exist (cached from previous warm request)
+    required_files = ["models_xgb_ensemble.pkl", "ensemble_weights.pkl", "feature_list.pkl"]
+    if all((models_dir / f).exists() for f in required_files):
+        logger.info("Models already present — skipping HF download")
+        return
+
+    logger.info(f"Downloading models from HuggingFace: {hf_repo}")
+
+    try:
+        from huggingface_hub import hf_hub_download
+
+        files = [
+            "models_xgb_ensemble.pkl",
+            "models_lgb_ensemble.pkl",
+            "models_cat_ensemble.pkl",
+            "ensemble_weights.pkl",
+            "feature_list.pkl",
+            "version.txt",
+            "target_encoding_map.json",
+        ]
+
+        for filename in files:
+            try:
+                local_path = hf_hub_download(
+                    repo_id=hf_repo,
+                    filename=filename,
+                    local_dir=str(models_dir),
+                    repo_type="model",
+                )
+                logger.info(f"  Downloaded: {filename}")
+
+                # Move target_encoding_map.json to correct location
+                if filename == "target_encoding_map.json":
+                    import shutil
+                    Path(ENC_MAP_PATH).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(local_path, ENC_MAP_PATH)
+
+            except Exception as e:
+                logger.warning(f"  Could not download {filename}: {e}")
+
+        logger.info("HF download complete")
+
+    except ImportError:
+        logger.error("huggingface-hub not installed. Add to requirements-render.txt")
+    except Exception as e:
+        logger.error(f"HF download failed: {e}")
+
+
 def load_models():
     """
     Load all models into STATE at startup.
@@ -219,6 +288,8 @@ def load_models():
     """
     logger.info("=" * 55)
     logger.info("PropML API — Model Loading (Phase 3, 13 cities)")
+
+    download_models_from_hf()
 
     STATE["models_xgb"] = _load_pkl("models_xgb_ensemble.pkl")
     STATE["models_lgb"] = _load_pkl("models_lgb_ensemble.pkl")

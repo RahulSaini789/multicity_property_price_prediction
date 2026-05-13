@@ -672,8 +672,15 @@ def fix_data_types(df: pd.DataFrame) -> pd.DataFrame:
     ).fillna(0).astype(int) # type: ignore
 
     # ── Phase 3: lat/lng ───────────────────────────────────────────────
-    df["lat"] = pd.to_numeric(df.get("lat", 0), errors="coerce").fillna(0.0).astype(float) # type: ignore
-    df["lng"] = pd.to_numeric(df.get("lng", 0), errors="coerce").fillna(0.0).astype(float) # type: ignore
+    df["lat"] = pd.to_numeric(
+        df["lat"] if "lat" in df.columns else pd.Series([0.0] * len(df)),
+        errors="coerce"
+    ).fillna(0.0).astype(float)
+
+    df["lng"] = pd.to_numeric(
+        df["lng"] if "lng" in df.columns else pd.Series([0.0] * len(df)),
+        errors="coerce"
+    ).fillna(0.0).astype(float)
 
     # Sanity: lat must be between 8 and 37 (India range), else 0.0
     bad_lat = ~df["lat"].between(8.0, 37.0) & (df["lat"] != 0.0)
@@ -686,8 +693,9 @@ def fix_data_types(df: pd.DataFrame) -> pd.DataFrame:
 
     # ── Phase 3: rera_approved ────────────────────────────────────────
     df["rera_approved"] = pd.to_numeric(
-        df.get("rera_approved", 0), errors="coerce"
-    ).fillna(0).clip(0, 1).astype(int) # type: ignore
+    df["rera_approved"] if "rera_approved" in df.columns else pd.Series([0] * len(df)),
+    errors="coerce"
+    ).fillna(0).clip(0, 1).astype(int)
 
     # ── locality column — alias for sector if missing ─────────────────
     if "locality" not in df.columns:
