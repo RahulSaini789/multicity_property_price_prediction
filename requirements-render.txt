@@ -13,3 +13,4 @@ shap==0.45.0
 pyarrow==16.0.0
 python-multipart==0.0.9
 starlette==0.37.2
+huggingface-hub
