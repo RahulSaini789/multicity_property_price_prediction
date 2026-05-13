@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PropML — India Property Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #04060d;
+  --ink2: #080c18;
+  --ink3: #0d1220;
+  --card: #101828;
+  --border: rgba(255,255,255,0.06);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e2e8f5;
+  --muted: #4a5572;
+  --muted2: #6b7a9a;
+  --ember: #ff5722;
+  --ember2: #ff7043;
+  --ember3: #ffab91;
+  --neon: #00e5ff;
+  --neon2: #40c4ff;
+  --violet: #7c3aed;
+  --violet2: #a78bfa;
+  --sage: #00e676;
+  --sage2: #69f0ae;
+  --gold: #ffd600;
+  --gold2: #ffea00;
+  --pink: #f50057;
+  --pink2: #ff4081;
+  --font: 'Space Grotesk', sans-serif;
+  --serif: 'Syne', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --glow-ember: 0 0 30px rgba(255,87,34,0.35);
+  --glow-neon: 0 0 30px rgba(0,229,255,0.3);
+  --glow-violet: 0 0 30px rgba(124,58,237,0.4);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{background:var(--ink);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.75;overflow-x:hidden;}
+
+/* NOISE OVERLAY */
+body::before{content:'';position:fixed;inset:0;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:linear-gradient(var(--ember),var(--violet));border-radius:3px;}
+
+/* ─── NAV ─── */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;height:64px;display:flex;align-items:center;padding:0 2.5rem;gap:2rem;background:rgba(4,6,13,0.85);backdrop-filter:blur(32px);border-bottom:1px solid var(--border);}
+.nav-wordmark{font-family:var(--serif);font-size:24px;font-weight:800;letter-spacing:-1px;color:var(--text);margin-right:auto;position:relative;}
+.nav-wordmark .accent{background:linear-gradient(135deg,var(--ember),var(--violet2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav-link{font-size:11px;font-weight:600;color:var(--muted2);text-decoration:none;letter-spacing:2px;text-transform:uppercase;transition:color .2s;font-family:var(--mono);}
+.nav-link:hover{color:var(--text);}
+.nav-pill{background:linear-gradient(135deg,rgba(255,87,34,0.15),rgba(124,58,237,0.15));border:1px solid rgba(255,87,34,0.4);color:var(--ember2);font-family:var(--mono);font-size:10px;font-weight:700;padding:5px 14px;border-radius:20px;letter-spacing:2px;text-decoration:none;display:flex;align-items:center;gap:6px;transition:all .3s;}
+.nav-pill:hover{box-shadow:var(--glow-ember);}
+.live-dot{width:6px;height:6px;background:var(--sage);border-radius:50%;animation:pulse-dot 2s infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.4);}}
+
+/* ─── 3D HERO ─── */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;padding-top:64px;position:relative;overflow:hidden;}
+.hero-bg{position:absolute;inset:0;z-index:0;}
+.hero-bg canvas{position:absolute;inset:0;width:100%;height:100%;}
+.hero-grad{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(255,87,34,.12) 0%,transparent 60%),radial-gradient(ellipse 60% 80% at 80% 30%,rgba(124,58,237,.1) 0%,transparent 60%),radial-gradient(ellipse 40% 40% at 60% 80%,rgba(0,229,255,.07) 0%,transparent 50%);}
+.hero-left{display:flex;flex-direction:column;justify-content:center;padding:5rem 3rem 4rem 3.5rem;position:relative;z-index:2;}
+.hero-right{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;padding:2rem;}
+
+.eyebrow{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:3px;color:var(--ember);text-transform:uppercase;margin-bottom:1rem;display:flex;align-items:center;gap:10px;}
+.eyebrow-line{width:32px;height:1px;background:linear-gradient(90deg,var(--ember),transparent);}
+h1{font-family:var(--serif);font-size:clamp(3rem,5.5vw,5.5rem);line-height:.95;font-weight:800;margin-bottom:1.5rem;letter-spacing:-3px;}
+h1 .grad-text{background:linear-gradient(135deg,#ff5722 0%,#ff4081 40%,#a78bfa 70%,#40c4ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-size:200% auto;animation:grad-shift 5s linear infinite;}
+@keyframes grad-shift{0%{background-position:0% 50%;}100%{background-position:200% 50%;}}
+h1 .fade{color:var(--muted);}
+.tagline{font-size:.95rem;color:var(--muted2);max-width:460px;margin-bottom:2.5rem;font-weight:400;line-height:1.8;}
+
+.kpi-row{display:flex;gap:1.25rem;margin-bottom:2.5rem;flex-wrap:wrap;}
+.kpi{padding:12px 16px;background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:10px;min-width:90px;position:relative;overflow:hidden;transition:all .3s;}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ember),var(--violet2));opacity:0;transition:opacity .3s;}
+.kpi:hover::before{opacity:1;}
+.kpi:hover{transform:translateY(-2px);border-color:rgba(255,87,34,0.3);}
+.kpi-val{font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--text);line-height:1;}
+.kpi-lbl{font-size:10px;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-top:4px;font-family:var(--mono);}
+
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;}
+.btn-primary{background:linear-gradient(135deg,var(--ember),var(--pink));color:#fff;border:none;padding:14px 28px;font-family:var(--serif);font-size:13px;font-weight:700;letter-spacing:1px;border-radius:8px;cursor:pointer;transition:all .3s;text-decoration:none;position:relative;overflow:hidden;}
+.btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--violet),var(--neon));opacity:0;transition:opacity .3s;}
+.btn-primary:hover::before{opacity:1;}
+.btn-primary span{position:relative;z-index:1;}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(255,87,34,0.4);}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border2);padding:14px 28px;font-family:var(--serif);font-size:13px;font-weight:600;letter-spacing:1px;border-radius:8px;cursor:pointer;transition:all .3s;text-decoration:none;}
+.btn-ghost:hover{border-color:var(--neon);color:var(--neon);box-shadow:var(--glow-neon);}
+
+/* SOCIAL LINKS */
+.social-row{display:flex;gap:12px;margin-top:1.5rem;}
+.social-btn{display:flex;align-items:center;gap:8px;padding:8px 16px;border:1px solid var(--border2);border-radius:8px;color:var(--muted2);text-decoration:none;font-size:12px;font-family:var(--mono);font-weight:600;letter-spacing:1px;transition:all .3s;}
+.social-btn:hover{border-color:rgba(255,255,255,0.3);color:var(--text);transform:translateY(-2px);}
+.social-btn.github:hover{border-color:var(--sage);color:var(--sage);box-shadow:0 0 20px rgba(0,230,118,0.2);}
+.social-btn.linkedin:hover{border-color:var(--neon);color:var(--neon);box-shadow:0 0 20px rgba(0,229,255,0.2);}
+.social-icon{font-size:16px;}
+
+/* ─── PREDICT FORM ─── */
+.pred-form{background:rgba(13,18,32,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:2rem;width:100%;max-width:480px;position:relative;z-index:2;backdrop-filter:blur(20px);box-shadow:0 32px 80px rgba(0,0,0,0.6);}
+.pred-form::before{content:'';position:absolute;top:-1px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,var(--ember),var(--violet2),transparent);}
+.form-head{font-family:var(--serif);font-size:16px;font-weight:700;color:var(--text);margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;}
+.form-head-right{font-family:var(--mono);font-size:10px;color:var(--ember);letter-spacing:2px;background:rgba(255,87,34,0.1);border:1px solid rgba(255,87,34,0.3);padding:3px 10px;border-radius:6px;}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.fld label{display:block;font-size:10px;font-weight:600;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px;font-family:var(--mono);}
+.fld select,.fld input{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;transition:all .2s;-webkit-appearance:none;}
+.fld select:focus,.fld input:focus{border-color:rgba(255,87,34,0.6);background:rgba(255,87,34,0.05);box-shadow:0 0 0 3px rgba(255,87,34,0.1);}
+.fld.span2{grid-column:1/-1;}
+.city-pill-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;}
+.cpill{padding:5px 14px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:1px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--muted2);cursor:pointer;transition:all .2s;}
+.cpill.active{background:linear-gradient(135deg,var(--ember),var(--pink));border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(255,87,34,0.35);}
+.predict-btn{width:100%;background:linear-gradient(135deg,rgba(255,87,34,0.2),rgba(124,58,237,0.2));border:1px solid rgba(255,87,34,0.4);color:var(--ember2);padding:13px;font-family:var(--serif);font-size:14px;font-weight:700;letter-spacing:1px;border-radius:10px;cursor:pointer;transition:all .3s;margin-top:4px;position:relative;overflow:hidden;}
+.predict-btn:hover{background:linear-gradient(135deg,rgba(255,87,34,0.35),rgba(124,58,237,0.35));border-color:var(--ember);box-shadow:var(--glow-ember);transform:translateY(-1px);}
+
+.result-box{background:linear-gradient(135deg,rgba(0,229,255,0.05),rgba(124,58,237,0.05));border:1px solid rgba(0,229,255,0.2);border-radius:12px;padding:1.25rem;margin-top:12px;display:none;}
+.result-box.show{display:block;animation:slide-up .4s ease;}
+@keyframes slide-up{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+.res-price{font-family:var(--serif);font-size:2.2rem;font-weight:800;background:linear-gradient(135deg,var(--gold),var(--ember));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
+.res-range{font-family:var(--mono);font-size:11px;color:var(--muted2);margin-top:4px;margin-bottom:14px;letter-spacing:.5px;}
+.shap-label{font-size:10px;color:var(--muted2);font-family:var(--mono);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase;}
+.shap-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.shap-name{font-size:10px;font-family:var(--mono);min-width:100px;color:var(--muted2);}
+.shap-track{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.shap-fill{height:100%;border-radius:2px;transition:width .8s ease;}
+.shap-pct{font-size:10px;color:var(--muted2);font-family:var(--mono);min-width:28px;text-align:right;}
+
+/* ─── DIVIDER ─── */
+.full-div{border:none;border-top:1px solid var(--border);max-width:1300px;margin:0 auto;}
+
+/* ─── SECTIONS ─── */
+.sec{padding:6rem 3rem;max-width:1300px;margin:0 auto;}
+.sec-eyebrow{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:3px;color:var(--ember);text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;gap:10px;}
+.sec-eyebrow::before{content:'';width:20px;height:1px;background:linear-gradient(90deg,var(--ember),transparent);}
+h2{font-family:var(--serif);font-size:clamp(2rem,4vw,3.4rem);font-weight:800;line-height:1.05;margin-bottom:.75rem;letter-spacing:-2px;}
+.sec-sub{color:var(--muted2);max-width:600px;margin-bottom:3rem;font-weight:400;font-size:.95rem;}
+
+/* ─── STATS STRIP ─── */
+.stats-strip{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:3rem;background:linear-gradient(135deg,rgba(255,87,34,0.03),rgba(124,58,237,0.03));}
+.stat-cell{padding:1.75rem 1.5rem;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .3s;}
+.stat-cell:last-child{border-right:none;}
+.stat-cell:hover{background:rgba(255,255,255,.03);}
+.sc-lbl{font-size:10px;font-weight:600;color:var(--muted2);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-family:var(--mono);}
+.sc-val{font-family:var(--serif);font-size:1.7rem;font-weight:800;line-height:1;letter-spacing:-1px;}
+.sc-sub{font-size:11px;color:var(--muted);margin-top:3px;font-family:var(--mono);}
+.v-ember{color:var(--ember);}
+.v-sage{color:var(--sage);}
+.v-gold{color:var(--gold);}
+.v-blue{color:var(--neon);}
+.v-violet{color:var(--violet2);}
+
+/* ─── CITY CARDS ─── */
+.city-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:3rem;}
+.city-card{border-radius:16px;padding:1.5rem;transition:all .3s;cursor:pointer;position:relative;overflow:hidden;}
+.city-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .3s;}
+.city-card:hover{transform:translateY(-6px);}
+.city-card:hover::before{opacity:1;}
+.city-card.c1{background:linear-gradient(135deg,rgba(255,87,34,0.1),rgba(255,87,34,0.04));border:1px solid rgba(255,87,34,0.25);}
+.city-card.c1::before{background:linear-gradient(135deg,rgba(255,87,34,0.15),rgba(255,87,34,0.06));}
+.city-card.c1:hover{box-shadow:0 16px 48px rgba(255,87,34,0.25);}
+.city-card.c2{background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(0,229,255,0.02));border:1px solid rgba(0,229,255,0.2);}
+.city-card.c2:hover{box-shadow:0 16px 48px rgba(0,229,255,0.2);}
+.city-card.c3{background:linear-gradient(135deg,rgba(255,214,0,0.08),rgba(255,214,0,0.02));border:1px solid rgba(255,214,0,0.2);}
+.city-card.c3:hover{box-shadow:0 16px 48px rgba(255,214,0,0.2);}
+.city-card.c4{background:linear-gradient(135deg,rgba(124,58,237,0.1),rgba(124,58,237,0.03));border:1px solid rgba(124,58,237,0.25);}
+.city-card.c4:hover{box-shadow:0 16px 48px rgba(124,58,237,0.25);}
+.city-tag{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:2px;padding:3px 10px;border-radius:6px;margin-bottom:10px;}
+.city-name{font-family:var(--serif);font-size:1.4rem;font-weight:800;letter-spacing:-1px;margin-bottom:4px;}
+.city-price{font-size:12px;color:var(--muted2);margin-bottom:14px;font-family:var(--mono);}
+.city-bar-wrap{height:3px;background:var(--border2);border-radius:2px;overflow:hidden;}
+.city-bar{height:100%;border-radius:2px;}
+.city-mape{font-family:var(--mono);font-size:10px;margin-top:10px;color:var(--muted);}
+
+/* ─── FEATURES ─── */
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.25rem;}
+.feat-card{border:1px solid var(--border);border-radius:16px;padding:1.75rem;transition:all .3s;position:relative;overflow:hidden;}
+.feat-card::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .4s;}
+.feat-card:hover::before{opacity:1;}
+.feat-card:hover{transform:translateY(-4px);}
+.feat-card.fc1{background:rgba(255,87,34,0.04);}
+.feat-card.fc1::before{background:linear-gradient(135deg,rgba(255,87,34,0.08),transparent);}
+.feat-card.fc1:hover{border-color:rgba(255,87,34,0.3);box-shadow:0 12px 40px rgba(255,87,34,0.15);}
+.feat-card.fc2{background:rgba(0,229,255,0.03);}
+.feat-card.fc2::before{background:linear-gradient(135deg,rgba(0,229,255,0.07),transparent);}
+.feat-card.fc2:hover{border-color:rgba(0,229,255,0.25);box-shadow:0 12px 40px rgba(0,229,255,0.12);}
+.feat-card.fc3{background:rgba(0,230,118,0.03);}
+.feat-card.fc3::before{background:linear-gradient(135deg,rgba(0,230,118,0.07),transparent);}
+.feat-card.fc3:hover{border-color:rgba(0,230,118,0.25);box-shadow:0 12px 40px rgba(0,230,118,0.12);}
+.feat-card.fc4{background:rgba(124,58,237,0.04);}
+.feat-card.fc4::before{background:linear-gradient(135deg,rgba(124,58,237,0.08),transparent);}
+.feat-card.fc4:hover{border-color:rgba(124,58,237,0.3);box-shadow:0 12px 40px rgba(124,58,237,0.15);}
+.feat-num{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:3px;margin-bottom:1rem;}
+.feat-icon{font-size:28px;margin-bottom:.75rem;line-height:1;}
+.feat-title{font-size:.95rem;font-weight:700;margin-bottom:8px;font-family:var(--serif);}
+.feat-desc{font-size:13px;color:var(--muted2);line-height:1.7;}
+
+/* ─── PIPELINE ─── */
+.pipe-wrap{overflow-x:auto;padding-bottom:1rem;}
+.pipe-row{display:flex;align-items:stretch;gap:0;min-width:900px;}
+.pipe-node{flex:1;padding:1.5rem 1rem;text-align:center;position:relative;transition:all .3s;border-right:1px solid var(--border);background:rgba(255,255,255,.02);}
+.pipe-node:first-child{border-radius:14px 0 0 14px;}
+.pipe-node:last-child{border-right:none;border-radius:0 14px 14px 0;}
+.pipe-node:hover{background:rgba(255,87,34,0.07);}
+.pipe-node .pn-n{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:.5rem;}
+.pipe-node .pn-icon{font-size:24px;margin-bottom:.5rem;}
+.pipe-node .pn-name{font-family:var(--serif);font-size:13px;font-weight:700;letter-spacing:.5px;color:var(--text);}
+.pipe-node .pn-sub{font-size:10px;color:var(--muted2);margin-top:3px;font-family:var(--mono);}
+.pipe-border{border:1px solid rgba(255,87,34,0.2);border-radius:14px;overflow:hidden;}
+
+/* ─── STATUS ─── */
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.status-card{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;padding:1.5rem;}
+.sc-head{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:3px;color:var(--muted2);text-transform:uppercase;margin-bottom:1rem;}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+.metric-row:last-child{border-bottom:none;}
+.metric-name{font-size:13px;color:var(--muted2);font-family:var(--mono);}
+.metric-val{font-family:var(--mono);font-size:13px;font-weight:700;color:var(--text);}
+.metric-val.good{color:var(--sage);}
+.metric-val.warn{color:var(--gold);}
+
+/* ─── PHASE 2 ─── */
+#phase2{padding:6rem 3rem;max-width:1300px;margin:0 auto;}
+.p2-header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1.5rem;margin-bottom:3.5rem;}
+.p2-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,230,118,0.06);border:1px solid rgba(0,230,118,0.2);padding:6px 16px;border-radius:20px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--sage);}
+.p2-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.25rem;}
+.p2-card{border-radius:18px;padding:1.75rem;position:relative;overflow:hidden;transition:all .3s;cursor:default;}
+.p2-card::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;transition:opacity .3s;opacity:.6;}
+.p2-card:hover{transform:translateY(-5px);}
+.p2-card.col-ember{background:linear-gradient(135deg,rgba(255,87,34,0.08),rgba(255,87,34,0.02));border:1px solid rgba(255,87,34,0.2);}
+.p2-card.col-ember::after{background:linear-gradient(90deg,transparent,var(--ember),transparent);}
+.p2-card.col-ember:hover{box-shadow:0 20px 60px rgba(255,87,34,0.2);}
+.p2-card.col-neon{background:linear-gradient(135deg,rgba(0,229,255,0.07),rgba(0,229,255,0.02));border:1px solid rgba(0,229,255,0.18);}
+.p2-card.col-neon::after{background:linear-gradient(90deg,transparent,var(--neon),transparent);}
+.p2-card.col-neon:hover{box-shadow:0 20px 60px rgba(0,229,255,0.18);}
+.p2-card.col-violet{background:linear-gradient(135deg,rgba(124,58,237,0.09),rgba(124,58,237,0.02));border:1px solid rgba(124,58,237,0.2);}
+.p2-card.col-violet::after{background:linear-gradient(90deg,transparent,var(--violet2),transparent);}
+.p2-card.col-violet:hover{box-shadow:0 20px 60px rgba(124,58,237,0.2);}
+.p2-card.col-gold{background:linear-gradient(135deg,rgba(255,214,0,0.07),rgba(255,214,0,0.02));border:1px solid rgba(255,214,0,0.18);}
+.p2-card.col-gold::after{background:linear-gradient(90deg,transparent,var(--gold),transparent);}
+.p2-card.col-gold:hover{box-shadow:0 20px 60px rgba(255,214,0,0.18);}
+.p2-card.col-sage{background:linear-gradient(135deg,rgba(0,230,118,0.07),rgba(0,230,118,0.02));border:1px solid rgba(0,230,118,0.18);}
+.p2-card.col-sage::after{background:linear-gradient(90deg,transparent,var(--sage),transparent);}
+.p2-card.col-sage:hover{box-shadow:0 20px 60px rgba(0,230,118,0.18);}
+.p2-card.col-pink{background:linear-gradient(135deg,rgba(245,0,87,0.08),rgba(245,0,87,0.02));border:1px solid rgba(245,0,87,0.2);}
+.p2-card.col-pink::after{background:linear-gradient(90deg,transparent,var(--pink2),transparent);}
+.p2-card.col-pink:hover{box-shadow:0 20px 60px rgba(245,0,87,0.2);}
+.p2-card-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1rem;}
+.p2-num{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--muted2);}
+.p2-pri-tag{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:5px;text-transform:uppercase;}
+.pri-1{background:rgba(255,87,34,0.15);color:var(--ember);border:1px solid rgba(255,87,34,0.3);}
+.pri-2{background:rgba(0,230,118,0.1);color:var(--sage);border:1px solid rgba(0,230,118,0.25);}
+.pri-3{background:rgba(0,229,255,0.1);color:var(--neon);border:1px solid rgba(0,229,255,0.2);}
+.pri-4{background:rgba(255,214,0,0.1);color:var(--gold);border:1px solid rgba(255,214,0,0.2);}
+.p2-icon{font-size:2.2rem;margin-bottom:.75rem;line-height:1;}
+.p2-title{font-family:var(--serif);font-size:1.1rem;font-weight:700;letter-spacing:-.5px;color:var(--text);margin-bottom:.5rem;}
+.p2-desc{font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:1.25rem;}
+.p2-tech-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:1rem;}
+.p2-chip{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;padding:3px 8px;border-radius:5px;background:rgba(255,255,255,0.04);border:1px solid var(--border2);color:var(--muted2);}
+.p2-endpoint{font-family:var(--mono);font-size:11px;color:var(--text);background:rgba(255,255,255,0.04);border:1px solid var(--border2);border-radius:7px;padding:8px 12px;display:flex;align-items:center;gap:8px;}
+.p2-method{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:1px;}
+.m-get{background:rgba(0,230,118,0.15);color:var(--sage);}
+.m-post{background:rgba(255,87,34,0.15);color:var(--ember);}
+.p2-timeline{display:flex;align-items:center;gap:8px;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border);}
+.p2-tl-dot{width:8px;height:8px;border-radius:50%;flex:none;}
+.p2-tl-text{font-family:var(--mono);font-size:10px;color:var(--muted2);letter-spacing:.5px;}
+.p2-tl-days{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:700;color:var(--text);}
+
+/* ─── DASHBOARD ─── */
+.dash-section{padding:6rem 3rem;max-width:1300px;margin:0 auto;}
+.dash-header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:3rem;}
+.dash-filter-row{display:flex;gap:8px;flex-wrap:wrap;}
+.df-btn{padding:7px 16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted2);cursor:pointer;transition:all .2s;}
+.df-btn.active{background:linear-gradient(135deg,var(--ember),var(--pink));color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(255,87,34,0.3);}
+.dash-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+.dash-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+.dash-grid-full{margin-bottom:1.5rem;}
+@media(max-width:1000px){.dash-grid-2,.dash-grid-3{grid-template-columns:1fr;}}
+.chart-card{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:16px;padding:1.5rem;position:relative;transition:border-color .3s;}
+.chart-card:hover{border-color:rgba(255,255,255,0.1);}
+.chart-card::before{content:'';position:absolute;inset:0;border-radius:16px;background:radial-gradient(ellipse at top,rgba(255,87,34,0.02),transparent 60%);pointer-events:none;}
+.cc-label{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:3px;color:var(--muted2);text-transform:uppercase;margin-bottom:4px;}
+.cc-title{font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:4px;font-family:var(--serif);}
+.cc-subtitle{font-size:11px;color:var(--muted2);margin-bottom:1.25rem;font-family:var(--mono);}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0;}
+.gauge-val{font-family:var(--serif);font-size:2.5rem;font-weight:800;margin-top:-1rem;}
+.gauge-lbl{font-size:10px;color:var(--muted2);font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+.waterfall-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.wf-name{font-size:11px;color:var(--muted2);font-family:var(--mono);min-width:130px;}
+.wf-bar-wrap{flex:1;height:24px;position:relative;background:rgba(255,255,255,0.04);border-radius:6px;overflow:hidden;}
+.wf-bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;font-family:var(--mono);font-size:11px;font-weight:700;}
+.heatmap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;}
+.hm-cell{border-radius:8px;padding:10px 8px;text-align:center;transition:all .2s;cursor:default;}
+.hm-cell:hover{transform:scale(1.05);}
+.hm-sector{font-size:9px;color:rgba(255,255,255,.5);font-family:var(--mono);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase;}
+.hm-val{font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;}
+.sentiment-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.sentiment-row:last-child{border-bottom:none;}
+.sent-news{font-size:12px;color:var(--text);flex:1;font-family:var(--mono);}
+.sent-impact{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 10px;border-radius:5px;letter-spacing:1px;white-space:nowrap;}
+.sent-up{background:rgba(0,230,118,.1);color:var(--sage);}
+.sent-dn{background:rgba(255,87,34,.1);color:var(--ember);}
+.sent-nu{background:rgba(0,229,255,.1);color:var(--neon);}
+
+/* ─── SECTION LABELS ─── */
+.dash-section-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:3px;display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;margin-top:1rem;text-transform:uppercase;}
+.dsl-line{width:18px;height:1px;display:inline-block;}
+
+/* ─── FOOTER ─── */
+footer{border-top:1px solid var(--border);padding:3rem;max-width:1300px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.5rem;}
+.foot-brand{font-family:var(--serif);font-size:22px;font-weight:800;letter-spacing:-1px;}
+.foot-brand .accent{background:linear-gradient(135deg,var(--ember),var(--violet2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.foot-links{display:flex;gap:20px;}
+.foot-links a{color:var(--muted2);text-decoration:none;font-size:11px;font-family:var(--mono);letter-spacing:2px;font-weight:600;transition:color .2s;}
+.foot-links a:hover{color:var(--text);}
+.foot-note{font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:1px;}
+
+/* ─── SECTOR TABLE ─── */
+.sector-table{width:100%;border-collapse:collapse;font-size:13px;}
+.sector-table th{text-align:left;padding:10px 16px;border-bottom:1px solid var(--border2);color:var(--muted2);font-size:9px;font-family:var(--mono);letter-spacing:2px;font-weight:700;text-transform:uppercase;}
+.sector-table td{padding:12px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);}
+.sector-table tr:last-child td{border-bottom:none;}
+.sector-table tr:hover td{background:rgba(255,255,255,.015);}
+.price-seg{height:4px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:8px;}
+.tier-tag{font-family:var(--mono);font-size:9px;font-weight:700;padding:2px 8px;border-radius:5px;letter-spacing:1px;}
+.tier-p{background:rgba(255,87,34,.1);color:var(--ember);}
+.tier-m{background:rgba(0,229,255,.1);color:var(--neon);}
+.tier-b{background:rgba(0,230,118,.08);color:var(--sage);}
+
+/* ─── REVEAL ─── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease;}
+.reveal.vis{opacity:1;transform:none;}
+
+/* ─── 3D FLOATING CARDS ─── */
+@keyframes float-a{0%,100%{transform:translateY(0) rotateX(2deg);}50%{transform:translateY(-12px) rotateX(-2deg);}}
+@keyframes float-b{0%,100%{transform:translateY(-8px) rotateY(2deg);}50%{transform:translateY(8px) rotateY(-2deg);}}
+@keyframes float-c{0%,100%{transform:translateY(4px) rotateZ(1deg);}50%{transform:translateY(-8px) rotateZ(-1deg);}}
+.float-a{animation:float-a 5s ease-in-out infinite;}
+.float-b{animation:float-b 6.5s ease-in-out infinite;}
+.float-c{animation:float-c 7s ease-in-out infinite;}
+
+/* ─── CITY TABS ─── */
+.city-tabs{display:flex;gap:6px;margin-bottom:1.75rem;flex-wrap:wrap;}
+.ctab{padding:6px 16px;font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;border:1px solid var(--border2);background:transparent;color:var(--muted2);transition:all .2s;border-radius:8px;}
+.ctab.active{background:linear-gradient(135deg,var(--ember),var(--pink));border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(255,87,34,0.3);}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .hero-left{padding:4rem 1.5rem 3rem;}
+  .sec{padding:4rem 1.5rem;}
+  nav{padding:0 1.5rem;gap:1rem;}
+  .stats-strip{grid-template-columns:repeat(2,1fr);}
+  #phase2{padding:4rem 1.5rem;}
+  .dash-section{padding:4rem 1.5rem;}
+  .status-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-wordmark">PROP<span class="accent">ML</span></div>
+  <a href="#predict" class="nav-link">Predict</a>
+  <a href="#market" class="nav-link">Market</a>
+  <a href="#dashboard" class="nav-link">Dashboard</a>
+  <a href="#pipeline" class="nav-link">MLOps</a>
+  <a href="#phase2" class="nav-link" style="color:var(--sage);">Phase 2 ✦</a>
+  <a href="https://github.com/RahulSaini789" target="_blank" class="nav-link" style="color:var(--muted2);">GitHub</a>
+  <a href="https://multicity-property-price-prediction-2.onrender.com/docs" target="_blank" class="nav-pill"><span class="live-dot"></span>LIVE API</a>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero" id="predict">
+  <div class="hero-bg">
+    <div class="hero-grad"></div>
+    <canvas id="heroCanvas"></canvas>
+  </div>
+
+  <div class="hero-left">
+    <div class="city-tabs">
+      <button class="ctab active" onclick="setCity('gurgaon',this)">Gurgaon</button>
+      <button class="ctab" onclick="setCity('noida',this)">Noida</button>
+      <button class="ctab" onclick="setCity('mumbai',this)">Mumbai</button>
+      <button class="ctab" onclick="setCity('bangalore',this)">Bangalore</button>
+      <button class="ctab" onclick="setCity('hyderabad',this)">Hyderabad</button>
+      <button class="ctab" onclick="setCity('jaipur',this)">Jaipur</button>
+    </div>
+    <div class="eyebrow"><span class="eyebrow-line"></span>MagicBricks Data — 13 Cities · India Property Intelligence</div>
+    <h1>Smarter<br><span class="grad-text">Price</span> Before<br><span class="fade">You Buy</span></h1>
+    <p class="tagline">XGBoost + LightGBM + CatBoost ensemble trained on 29,821 real listings. MAPE 20.31% · R² 0.9321 · SHAP explainability on every prediction.</p>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-val" id="kpi-props">29,821</div><div class="kpi-lbl">Properties</div></div>
+      <div class="kpi"><div class="kpi-val" id="kpi-mape">20.31%</div><div class="kpi-lbl">MAPE</div></div>
+      <div class="kpi"><div class="kpi-val">0.9321</div><div class="kpi-lbl">R² Score</div></div>
+      <div class="kpi"><div class="kpi-val">123ms</div><div class="kpi-lbl">Latency</div></div>
+      <div class="kpi"><div class="kpi-val">13</div><div class="kpi-lbl">Cities</div></div>
+    </div>
+    <div class="cta-row">
+      <a href="#pipeline" class="btn-primary"><span>View MLOps Stack</span></a>
+      <a href="https://multicity-property-price-prediction-2.onrender.com/docs" target="_blank" class="btn-ghost">API Docs →</a>
+    </div>
+    <div class="social-row">
+      <a href="https://github.com/RahulSaini789" target="_blank" class="social-btn github">
+        <span class="social-icon">⌥</span> GitHub · Rahul Saini
+      </a>
+      <a href="https://www.linkedin.com/in/rahul-saini-122321229/" target="_blank" class="social-btn linkedin">
+        <span class="social-icon">in</span> LinkedIn
+      </a>
+    </div>
+  </div>
+
+  <div class="hero-right">
+    <div class="pred-form float-a">
+      <div class="form-head">Price Estimator <span class="form-head-right" id="city-label">GURGAON</span></div>
+      <div class="city-pill-row">
+        <button class="cpill active" onclick="setPCity('gurgaon',this)">GGN</button>
+        <button class="cpill" onclick="setPCity('noida',this)">NOI</button>
+        <button class="cpill" onclick="setPCity('mumbai',this)">MUM</button>
+        <button class="cpill" onclick="setPCity('bangalore',this)">BLR</button>
+        <button class="cpill" onclick="setPCity('hyderabad',this)">HYD</button>
+        <button class="cpill" onclick="setPCity('pune',this)">PNE</button>
+        <button class="cpill" onclick="setPCity('chennai',this)">CHN</button>
+        <button class="cpill" onclick="setPCity('delhi',this)">DEL</button>
+      </div>
+      <div class="fg">
+        <div class="fld">
+          <label>Type</label>
+          <select id="f-type">
+            <option value="flat">Flat / Apartment</option>
+            <option value="house">Independent House</option>
+            <option value="plot">Plot</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Area (sqft)</label>
+          <input type="number" id="f-area" value="1800" placeholder="1800">
+        </div>
+        <div class="fld">
+          <label>BHK</label>
+          <select id="f-bhk">
+            <option value="1">1 BHK</option>
+            <option value="2">2 BHK</option>
+            <option value="3" selected>3 BHK</option>
+            <option value="4">4 BHK</option>
+            <option value="5">5 BHK</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Bathrooms</label>
+          <select id="f-bath">
+            <option>1</option><option>2</option>
+            <option selected>3</option><option>4</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Floor</label>
+          <input type="number" id="f-floor" value="5" min="0" max="60">
+        </div>
+        <div class="fld">
+          <label>Total Floors</label>
+          <input type="number" id="f-tfloor" value="15" min="1" max="80">
+        </div>
+        <div class="fld span2">
+          <label>Amenity Score: <span id="am-val" style="color:var(--ember);font-weight:700;">7</span> / 10</label>
+          <input type="range" id="f-amenity" min="0" max="10" value="7" style="width:100%;margin-top:6px;accent-color:var(--ember);" oninput="document.getElementById('am-val').textContent=this.value">
+        </div>
+      </div>
+      <button class="predict-btn" onclick="doPred()">▶ ESTIMATE PRICE — LIVE API</button>
+      <div class="result-box" id="result-box">
+        <div class="res-price" id="res-price">₹ —</div>
+        <div class="res-range" id="res-range">—</div>
+        <div class="shap-label">Why this price?</div>
+        <div id="shap-rows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="full-div">
+
+<!-- ═══ MARKET ═══ -->
+<div class="sec reveal" id="market">
+  <div class="sec-eyebrow">Market Intelligence</div>
+  <h2>13-City India Snapshot</h2>
+  <p class="sec-sub">Real MagicBricks listings — 29,821 verified properties across Tier 1, 2 and 3 cities.</p>
+
+  <div class="stats-strip">
+    <div class="stat-cell"><div class="sc-lbl">Total Listings</div><div class="sc-val v-ember">29,821</div><div class="sc-sub">13 cities</div></div>
+    <div class="stat-cell"><div class="sc-lbl">Best MAPE</div><div class="sc-val v-sage">15.51%</div><div class="sc-sub">Pune</div></div>
+    <div class="stat-cell"><div class="sc-lbl">Ensemble</div><div class="sc-val v-violet">XGB+LGB+Cat</div><div class="sc-sub">53 features</div></div>
+    <div class="stat-cell"><div class="sc-lbl">R² Score</div><div class="sc-val v-gold">0.9321</div><div class="sc-sub">Cross-validated</div></div>
+    <div class="stat-cell"><div class="sc-lbl">API Latency</div><div class="sc-val v-blue">123ms</div><div class="sc-sub">p50 on Render</div></div>
+  </div>
+
+  <div class="city-grid">
+    <div class="city-card c1"><span class="city-tag" style="background:rgba(255,87,34,.12);color:var(--ember);border:1px solid rgba(255,87,34,.25);">TIER 1</span><div class="city-name" style="color:var(--ember2);">Mumbai</div><div class="city-price">17.33% MAPE · Tier 1</div><div class="city-bar-wrap"><div class="city-bar" style="width:100%;background:linear-gradient(90deg,var(--ember),var(--pink));"></div></div></div>
+    <div class="city-card c2"><span class="city-tag" style="background:rgba(0,229,255,.1);color:var(--neon);border:1px solid rgba(0,229,255,.2);">TIER 1</span><div class="city-name" style="color:var(--neon2);">Bangalore</div><div class="city-price">18.96% MAPE · Tier 1</div><div class="city-bar-wrap"><div class="city-bar" style="width:85%;background:linear-gradient(90deg,var(--neon),var(--violet2));"></div></div></div>
+    <div class="city-card c3"><span class="city-tag" style="background:rgba(0,230,118,.1);color:var(--sage);border:1px solid rgba(0,230,118,.2);">TIER 1</span><div class="city-name" style="color:var(--sage2);">Pune</div><div class="city-price">15.51% MAPE · Best Model</div><div class="city-bar-wrap"><div class="city-bar" style="width:92%;background:linear-gradient(90deg,var(--sage),var(--neon));"></div></div></div>
+    <div class="city-card c4"><span class="city-tag" style="background:rgba(124,58,237,.12);color:var(--violet2);border:1px solid rgba(124,58,237,.25);">TIER 1</span><div class="city-name" style="color:var(--violet2);">Hyderabad</div><div class="city-price">17.14% MAPE · Tier 1</div><div class="city-bar-wrap"><div class="city-bar" style="width:88%;background:linear-gradient(90deg,var(--violet),var(--pink));"></div></div></div>
+    <div class="city-card c1"><span class="city-tag" style="background:rgba(255,87,34,.12);color:var(--ember);border:1px solid rgba(255,87,34,.25);">TIER 2</span><div class="city-name" style="color:var(--ember3);">Noida</div><div class="city-price">20.72% MAPE · 1,500 listings</div><div class="city-bar-wrap"><div class="city-bar" style="width:72%;background:linear-gradient(90deg,var(--ember2),var(--gold));"></div></div></div>
+    <div class="city-card c2"><span class="city-tag" style="background:rgba(255,214,0,.1);color:var(--gold);border:1px solid rgba(255,214,0,.2);">TIER 2</span><div class="city-name" style="color:var(--gold);">Gurgaon</div><div class="city-price">21.13% MAPE · 3,417 listings</div><div class="city-bar-wrap"><div class="city-bar" style="width:66%;background:linear-gradient(90deg,var(--gold),var(--ember));"></div></div></div>
+    <div class="city-card c3"><span class="city-tag" style="background:rgba(245,0,87,.1);color:var(--pink2);border:1px solid rgba(245,0,87,.2);">TIER 3</span><div class="city-name" style="color:var(--pink2);">Jaipur</div><div class="city-price">28.88% MAPE · 35% plots</div><div class="city-bar-wrap"><div class="city-bar" style="width:48%;background:linear-gradient(90deg,var(--pink),var(--violet));"></div></div></div>
+    <div class="city-card c4"><span class="city-tag" style="background:rgba(0,229,255,.1);color:var(--neon);border:1px solid rgba(0,229,255,.2);">TIER 3</span><div class="city-name" style="color:var(--neon2);">Kota</div><div class="city-price">24.26% MAPE · Coaching Hub</div><div class="city-bar-wrap"><div class="city-bar" style="width:52%;background:linear-gradient(90deg,var(--neon2),var(--sage));"></div></div></div>
+  </div>
+
+  <table class="sector-table">
+    <thead><tr>
+      <th>Sector / Area</th><th>Avg Price</th><th>Price Band</th>
+      <th>Type</th><th>Tier</th>
+    </tr></thead>
+    <tbody>
+      <tr><td>DLF Phase 1-2, Gurgaon</td><td>₹ 4.5–12 Cr</td><td><div class="price-seg" style="width:90px;background:linear-gradient(90deg,var(--ember),var(--pink));"></div></td><td>House + Flat</td><td><span class="tier-tag tier-p">PREMIUM</span></td></tr>
+      <tr><td>Bandra-Kurla, Mumbai</td><td>₹ 6–22 Cr</td><td><div class="price-seg" style="width:100px;background:linear-gradient(90deg,var(--violet),var(--neon));"></div></td><td>Luxury Flat</td><td><span class="tier-tag tier-p">PREMIUM</span></td></tr>
+      <tr><td>Koramangala, Bangalore</td><td>₹ 3–8 Cr</td><td><div class="price-seg" style="width:72px;background:linear-gradient(90deg,var(--neon),var(--sage));"></div></td><td>Flat</td><td><span class="tier-tag tier-m">MID</span></td></tr>
+      <tr><td>Sector 62, Noida</td><td>₹ 0.8–2 Cr</td><td><div class="price-seg" style="width:40px;background:linear-gradient(90deg,var(--neon2),var(--violet));"></div></td><td>Flat</td><td><span class="tier-tag tier-m">MID</span></td></tr>
+      <tr><td>Vigyan Nagar, Kota</td><td>₹ 0.35–0.8 Cr</td><td><div class="price-seg" style="width:22px;background:linear-gradient(90deg,var(--sage),var(--neon));"></div></td><td>Flat+House</td><td><span class="tier-tag tier-b">BUDGET</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<hr class="full-div">
+
+<!-- ═══ FEATURES ═══ -->
+<div class="sec reveal">
+  <div class="sec-eyebrow">System Capabilities</div>
+  <h2>Production-Grade, End to End</h2>
+  <p class="sec-sub">Not a Jupyter notebook. A live MLOps system with 7 layers, CI/CD, and Docker on Render.</p>
+  <div class="feat-grid">
+    <div class="feat-card fc1"><div class="feat-num">01 / DATA</div><div class="feat-icon">🕷️</div><div class="feat-title">MagicBricks Scraper</div><div class="feat-desc">Playwright-based scraper using <code style="color:var(--ember);font-family:var(--mono);font-size:11px;">SERVER_PRELOADED_STATE_</code>, 13 cities, DVC pipeline integration, priceD/caSqFt field mapping.</div></div>
+    <div class="feat-card fc2"><div class="feat-num">02 / CLEAN</div><div class="feat-icon">🧹</div><div class="feat-title">City-Aware Cleaning</div><div class="feat-desc">Grouped IQR per city×type×tier, bbox lat/lng validation, plot BHK=0, sq-yrd→sqft, India bbox filter.</div></div>
+    <div class="feat-card fc3"><div class="feat-num">03 / MODEL</div><div class="feat-icon">🧠</div><div class="feat-title">XGB + LGB + CatBoost Ensemble</div><div class="feat-desc">Optuna 100 trials, 5-fold CV, weights (0.483/0.159/0.358) tuned via secondary Optuna. 53 features.</div></div>
+    <div class="feat-card fc4"><div class="feat-num">04 / EXPLAIN</div><div class="feat-icon">🔍</div><div class="feat-title">SHAP Explainability</div><div class="feat-desc">KernelExplainer on every prediction. Top-3 drivers returned in API response. city_tier_num at 48.7%.</div></div>
+    <div class="feat-card fc1"><div class="feat-num">05 / SERVE</div><div class="feat-icon">⚡</div><div class="feat-title">FastAPI + Docker + HuggingFace</div><div class="feat-desc">Models on HF Hub <code style="color:var(--ember);font-family:var(--mono);font-size:11px;">Dumdigi/multicity</code>. Downloaded at startup on Render. 123ms p50 latency.</div></div>
+    <div class="feat-card fc2"><div class="feat-num">06 / CI/CD</div><div class="feat-icon">🚀</div><div class="feat-title">6-Stage GitHub Actions</div><div class="feat-desc">lint → test (40+ cases) → model-gate (MAPE≤22%, R²≥0.82) → docker build → Render deploy → smoke-test.</div></div>
+  </div>
+</div>
+
+<hr class="full-div">
+
+<!-- ═══ PIPELINE ═══ -->
+<div class="sec reveal" id="pipeline">
+  <div class="sec-eyebrow">MLOps Architecture</div>
+  <h2>The Full Stack</h2>
+  <p class="sec-sub">7 layers — each production-grade and interview-explainable.</p>
+  <div class="pipe-wrap">
+    <div class="pipe-border">
+      <div class="pipe-row">
+        <div class="pipe-node"><div class="pn-n">L1</div><div class="pn-icon">🕷️</div><div class="pn-name">SCRAPE</div><div class="pn-sub">MagicBricks</div></div>
+        <div class="pipe-node"><div class="pn-n">L2</div><div class="pn-icon">🔍</div><div class="pn-name">VALIDATE</div><div class="pn-sub">35 checks</div></div>
+        <div class="pipe-node"><div class="pn-n">L3</div><div class="pn-icon">🧹</div><div class="pn-name">CLEAN</div><div class="pn-sub">City-Aware</div></div>
+        <div class="pipe-node"><div class="pn-n">L4</div><div class="pn-icon">⚙️</div><div class="pn-name">FEATURES</div><div class="pn-sub">53 Engineered</div></div>
+        <div class="pipe-node"><div class="pn-n">L5</div><div class="pn-icon">🧠</div><div class="pn-name">TRAIN</div><div class="pn-sub">XGB+LGB+Cat</div></div>
+        <div class="pipe-node"><div class="pn-n">L6</div><div class="pn-icon">🚀</div><div class="pn-name">SERVE</div><div class="pn-sub">FastAPI+Docker</div></div>
+        <div class="pipe-node"><div class="pn-n">L7</div><div class="pn-icon">📊</div><div class="pn-name">MONITOR</div><div class="pn-sub">Drift+CI/CD</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-grid" style="margin-top:2rem;">
+    <div class="status-card">
+      <div class="sc-head">Final Model Metrics</div>
+      <div class="metric-row"><span class="metric-name">CV MAPE</span><span class="metric-val warn">20.31%</span></div>
+      <div class="metric-row"><span class="metric-name">CV R²</span><span class="metric-val good">0.9321</span></div>
+      <div class="metric-row"><span class="metric-name">vs Ridge Baseline</span><span class="metric-val good">+10.12pp</span></div>
+      <div class="metric-row"><span class="metric-name">Optuna Trials</span><span class="metric-val">100</span></div>
+      <div class="metric-row"><span class="metric-name">Training Rows</span><span class="metric-val">29,821</span></div>
+      <div class="metric-row"><span class="metric-name">HF Model Repo</span><span class="metric-val" style="color:var(--neon);font-size:11px;">Dumdigi/multicity</span></div>
+    </div>
+    <div class="status-card">
+      <div class="sc-head">Top SHAP Features</div>
+      <div class="shap-row"><span class="shap-name">city_tier_num</span><div class="shap-track"><div class="shap-fill" style="width:100%;background:linear-gradient(90deg,var(--ember),var(--pink));"></div></div><span class="shap-pct">48.7%</span></div>
+      <div class="shap-row"><span class="shap-name">is_plot</span><div class="shap-track"><div class="shap-fill" style="width:47%;background:linear-gradient(90deg,var(--violet),var(--neon));"></div></div><span class="shap-pct">23.2%</span></div>
+      <div class="shap-row"><span class="shap-name">bhk_x_city</span><div class="shap-track"><div class="shap-fill" style="width:13%;background:var(--gold);"></div></div><span class="shap-pct">6.4%</span></div>
+      <div class="shap-row"><span class="shap-name">locality_enc</span><div class="shap-track"><div class="shap-fill" style="width:12%;background:var(--sage);"></div></div><span class="shap-pct">5.8%</span></div>
+      <div class="shap-row"><span class="shap-name">city_encoded</span><div class="shap-track"><div class="shap-fill" style="width:7%;background:var(--neon);"></div></div><span class="shap-pct">3.6%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PHASE 2 ═══ -->
+<hr class="full-div">
+<div id="phase2" class="reveal">
+  <div class="p2-header">
+    <div>
+      <div class="sec-eyebrow" style="margin-bottom:.75rem;">Phase 2 Roadmap</div>
+      <h2 style="margin-bottom:.5rem;">7 Advanced Features</h2>
+      <p style="color:var(--muted2);font-size:.95rem;font-weight:400;max-width:580px;font-family:var(--mono);">Post-MVP upgrades that transform PropML from a price predictor into a full property intelligence platform — prioritized by production impact.</p>
+    </div>
+    <div class="p2-badge">Planned — After Phase 1 is Stable</div>
+  </div>
+
+  <div class="p2-grid">
+    <div class="p2-card col-sage">
+      <div class="p2-card-top"><span class="p2-num">F2 / FORECAST</span><span class="p2-pri-tag pri-4">Priority 5</span></div>
+      <div class="p2-icon">📈</div>
+      <div class="p2-title">Locality Price Forecasting</div>
+      <div class="p2-desc">Prophet/LSTM per city-sector. Users see "Sector 62 Noida: +11.4% in 6 months" with confidence bands. Fan chart with ±1σ CI. No competitor does sector-level forecasts.</div>
+      <div class="p2-tech-row"><span class="p2-chip">Prophet</span><span class="p2-chip">LSTM</span><span class="p2-chip">DVC stage</span><span class="p2-chip">JSON reports</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-get">GET</span><span>/forecast/{city}/{sector}</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--sage);"></div><span class="p2-tl-text">Needs 12+ monthly data points per sector</span><span class="p2-tl-days">6–8 days</span></div>
+    </div>
+
+    <div class="p2-card col-neon">
+      <div class="p2-card-top"><span class="p2-num">F3 / RECOMMEND</span><span class="p2-pri-tag pri-1">Priority 1</span></div>
+      <div class="p2-icon">🔎</div>
+      <div class="p2-title">FAISS Recommender</div>
+      <div class="p2-desc">Replace 175MB brute-force cosine matrix with FAISS IndexFlatIP + L2 norm. Query drops from O(n) to O(log n). Must do before real scraping floods the dataset to 50k+.</div>
+      <div class="p2-tech-row"><span class="p2-chip">faiss-cpu</span><span class="p2-chip">IndexFlatIP</span><span class="p2-chip">MinMax scale</span><span class="p2-chip">HF Hub upload</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-post">POST</span><span>/recommend — &lt;10ms query</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--neon);"></div><span class="p2-tl-text">First feature to build — blocks real scraping scale</span><span class="p2-tl-days">4–5 days</span></div>
+    </div>
+
+    <div class="p2-card col-gold">
+      <div class="p2-card-top"><span class="p2-num">F4 / RETRAIN</span><span class="p2-pri-tag pri-2">Priority 4</span></div>
+      <div class="p2-icon">🔄</div>
+      <div class="p2-title">Feedback → Auto-Retrain Loop</div>
+      <div class="p2-desc">Users submit actual sale prices. Corrections in PostgreSQL with 2× sample weight. N=50 triggers retrain_trigger.json → GitHub Actions fires full retrain → gate → deploy. Zero humans.</div>
+      <div class="p2-tech-row"><span class="p2-chip">PostgreSQL</span><span class="p2-chip">GitHub Actions</span><span class="p2-chip">N=50 threshold</span><span class="p2-chip">2× weight</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-post">POST</span><span>/feedback — stores actual_price_cr</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--gold);"></div><span class="p2-tl-text">Data flywheel — model improves with every user</span><span class="p2-tl-days">4–5 days</span></div>
+    </div>
+
+    <div class="p2-card col-ember">
+      <div class="p2-card-top"><span class="p2-num">F5 / SEARCH</span><span class="p2-pri-tag pri-3">Priority 6</span></div>
+      <div class="p2-icon">💬</div>
+      <div class="p2-title">NLP Natural Language Search</div>
+      <div class="p2-desc">"3BHK under 80L near metro in Noida" → LLM function calling extracts structured PredictRequest → API call → prediction. Rate-limited 10 calls/hr/IP. Accessible to non-technical buyers.</div>
+      <div class="p2-tech-row"><span class="p2-chip">Claude Haiku</span><span class="p2-chip">Function calling</span><span class="p2-chip">Pydantic v2</span><span class="p2-chip">Rate limiting</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-post">POST</span><span>/search — plain text → prediction</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--ember);"></div><span class="p2-tl-text">Needs ANTHROPIC_API_KEY in Render env vars</span><span class="p2-tl-days">4–5 days</span></div>
+    </div>
+
+    <div class="p2-card col-sage">
+      <div class="p2-card-top"><span class="p2-num">F6 / FINANCE</span><span class="p2-pri-tag pri-4">Priority 8</span></div>
+      <div class="p2-icon">🏦</div>
+      <div class="p2-title">EMI + Mortgage Calculator</div>
+      <div class="p2-desc">Given predicted price, compute monthly EMI via RBI repo + bank spread. Show total interest, down payment, affordability ratio vs median city income. Injected into every /predict response.</div>
+      <div class="p2-tech-row"><span class="p2-chip">RBI repo rate</span><span class="p2-chip">Bank spread</span><span class="p2-chip">EMI formula</span><span class="p2-chip">params.yaml</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-get">GET</span><span>/emi?price_cr=1.5&amp;city=gurgaon</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--sage);"></div><span class="p2-tl-text">EMI auto-included in /predict response body</span><span class="p2-tl-days">2–3 days</span></div>
+    </div>
+
+    <div class="p2-card col-violet">
+      <div class="p2-card-top"><span class="p2-num">F7 / MLOPS</span><span class="p2-pri-tag pri-1">Priority 2</span></div>
+      <div class="p2-icon">🔁</div>
+      <div class="p2-title">Drift Auto-Versioning</div>
+      <div class="p2-desc">PSI > 0.25 → writes retrain_trigger.json → auto_retrain.yml fires → retrains → MAPE & R² gate → MAJOR.MINOR.PATCH tag → HF Hub push → Render redeploys. Full closed loop.</div>
+      <div class="p2-tech-row"><span class="p2-chip">PSI threshold</span><span class="p2-chip">SEMVER</span><span class="p2-chip">HF Hub tags</span><span class="p2-chip">Deploy hook</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-get">GET</span><span>/health → model_version field</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--violet2);"></div><span class="p2-tl-text">Closes the production loop — zero manual intervention</span><span class="p2-tl-days">4–5 days</span></div>
+    </div>
+
+    <div class="p2-card col-pink">
+      <div class="p2-card-top"><span class="p2-num">F8 / BOT</span><span class="p2-pri-tag pri-3">Priority 7</span></div>
+      <div class="p2-icon">🤖</div>
+      <div class="p2-title">WhatsApp / Telegram Bot</div>
+      <div class="p2-desc">Telegram webhook on same Render instance. User sends "3BHK 1500sqft Gurgaon Sec 92" → bot calls /search → replies with ₹ estimate + CI + SHAP drivers. Twilio for WhatsApp extension.</div>
+      <div class="p2-tech-row"><span class="p2-chip">python-telegram-bot</span><span class="p2-chip">Webhook mode</span><span class="p2-chip">Twilio</span><span class="p2-chip">Render env</span></div>
+      <div class="p2-endpoint"><span class="p2-method m-post">POST</span><span>/telegram/webhook/{token}</span></div>
+      <div class="p2-timeline"><div class="p2-tl-dot" style="background:var(--pink2);"></div><span class="p2-tl-text">Demo on phone in interview — instant wow factor</span><span class="p2-tl-days">3–4 days</span></div>
+    </div>
+  </div>
+
+  <!-- Build Sequence Strip -->
+  <div style="margin-top:3rem;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:16px;padding:1.75rem;">
+    <div style="font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:3px;color:var(--muted2);text-transform:uppercase;margin-bottom:1.5rem;">Recommended Build Sequence</div>
+    <div style="display:flex;gap:0;overflow-x:auto;padding-bottom:.5rem;align-items:center;">
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(0,229,255,0.1);border:2px solid var(--neon);display:flex;align-items:center;justify-content:center;font-size:18px;">🔎</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--neon);font-weight:700;letter-spacing:1px;text-align:center;">F3 FAISS</div></div>
+      <div style="flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--neon),var(--violet2));margin-top:-20px;opacity:.4;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(124,58,237,0.1);border:2px solid var(--violet2);display:flex;align-items:center;justify-content:center;font-size:18px;">🔁</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--violet2);font-weight:700;letter-spacing:1px;text-align:center;">F7 DRIFT</div></div>
+      <div style="flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--violet2),var(--gold));margin-top:-20px;opacity:.4;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,214,0,0.1);border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px;">🔄</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--gold);font-weight:700;letter-spacing:1px;text-align:center;">F4 FEEDBACK</div></div>
+      <div style="flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--gold),var(--sage));margin-top:-20px;opacity:.4;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(0,230,118,0.1);border:2px solid var(--sage);display:flex;align-items:center;justify-content:center;font-size:18px;">📈</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--sage);font-weight:700;letter-spacing:1px;text-align:center;">F2 FORECAST</div></div>
+      <div style="flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--sage),var(--ember));margin-top:-20px;opacity:.4;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(255,87,34,0.1);border:2px solid var(--ember);display:flex;align-items:center;justify-content:center;font-size:18px;">💬</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--ember);font-weight:700;letter-spacing:1px;text-align:center;">F5 NLP</div></div>
+      <div style="flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--ember),var(--pink2));margin-top:-20px;opacity:.4;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(245,0,87,0.1);border:2px solid var(--pink2);display:flex;align-items:center;justify-content:center;font-size:18px;">🤖</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--pink2);font-weight:700;letter-spacing:1px;text-align:center;">F8 BOT</div></div>
+      <div style="flex:1;min-width:20px;height:1px;background:linear-gradient(90deg,var(--pink2),var(--sage2));margin-top:-20px;opacity:.4;"></div>
+      <div style="display:flex;flex-direction:column;align-items:center;min-width:80px;flex:none;"><div style="width:40px;height:40px;border-radius:50%;background:rgba(0,230,118,0.1);border:2px solid var(--sage2);display:flex;align-items:center;justify-content:center;font-size:18px;">🏦</div><div style="width:1px;height:20px;background:var(--border);margin:6px 0;"></div><div style="font-family:var(--mono);font-size:9px;color:var(--sage2);font-weight:700;letter-spacing:1px;text-align:center;">F6 EMI</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DASHBOARD ═══ -->
+<div class="dash-section reveal" id="dashboard">
+  <div class="dash-header">
+    <div>
+      <div class="sec-eyebrow" style="margin-bottom:.5rem;">Analytics Dashboard</div>
+      <h2 style="margin-bottom:.25rem;">Market Intelligence</h2>
+      <p style="color:var(--muted2);font-size:.9rem;font-weight:400;font-family:var(--mono);">Hover charts · City filter updates all charts</p>
+    </div>
+    <div class="dash-filter-row">
+      <button class="df-btn active" onclick="dashSetCity('gurgaon',this)">Gurgaon</button>
+      <button class="df-btn" onclick="dashSetCity('noida',this)">Noida</button>
+      <button class="df-btn" onclick="dashSetCity('chandigarh',this)">Chandigarh</button>
+      <button class="df-btn" onclick="dashSetCity('kota',this)">Kota</button>
+    </div>
+  </div>
+
+  <!-- MARKET PULSE -->
+  <div class="dash-section-label" style="color:var(--ember);"><span class="dsl-line" style="background:var(--ember);"></span>01 — MARKET PULSE</div>
+  <div class="dash-grid-3">
+    <div class="chart-card" style="grid-column:1/3;">
+      <div class="cc-label">YoY Price Trend</div>
+      <div class="cc-title">Average Price Growth 2020–2025</div>
+      <div class="cc-subtitle" id="trend-subtitle">Gurgaon — Bullish market, +18.4% CAGR</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-label">Inventory Mix</div>
+      <div class="cc-title">Property Type Distribution</div>
+      <div class="cc-subtitle" id="donut-subtitle">Gurgaon · 3,417 listings</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="donutChart"></canvas></div>
+    </div>
+  </div>
+  <div class="dash-grid-full chart-card" style="margin-bottom:1.5rem;">
+    <div class="cc-label">Demand vs Supply Gap</div>
+    <div class="cc-title">BHK Configuration — Buyer Demand vs Market Availability</div>
+    <div class="cc-subtitle"><span style="color:var(--ember);">■ Demand</span>&nbsp;&nbsp;<span style="color:var(--sage);">■ Supply</span></div>
+    <div class="chart-wrap" style="height:180px;"><canvas id="bhkChart"></canvas></div>
+  </div>
+
+  <!-- LOCATION INTELLIGENCE -->
+  <div class="dash-section-label" style="color:var(--sage);"><span class="dsl-line" style="background:var(--sage);"></span>02 — LOCATION INTELLIGENCE</div>
+  <div class="dash-grid-3">
+    <div class="chart-card" style="grid-column:1/3;">
+      <div class="cc-label">Price Heatmap</div>
+      <div class="cc-title">Price/Sqft by Sector</div>
+      <div class="cc-subtitle" id="hm-subtitle">Hover for exact values</div>
+      <div class="heatmap-grid" id="heatmapGrid" style="margin-top:.75rem;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-label">Amenities Radar</div>
+      <div class="cc-title">Sector Quality Score</div>
+      <div class="cc-subtitle" id="radar-subtitle">Premium vs Budget</div>
+      <div class="chart-wrap" style="height:230px;"><canvas id="radarChart"></canvas></div>
+    </div>
+  </div>
+  <div class="dash-grid-full chart-card" style="margin-bottom:1.5rem;">
+    <div class="cc-label">Value Zones — Scatter</div>
+    <div class="cc-title">Price/Sqft vs Distance from City Center</div>
+    <div class="cc-subtitle">Bubble size = listing count · Distance ↑ → Price ↓</div>
+    <div class="chart-wrap" style="height:220px;"><canvas id="scatterChart"></canvas></div>
+  </div>
+
+  <!-- INVESTMENT & ROI -->
+  <div class="dash-section-label" style="color:var(--gold);"><span class="dsl-line" style="background:var(--gold);"></span>03 — INVESTMENT &amp; ROI ANALYTICS</div>
+  <div class="dash-grid-2">
+    <div class="chart-card">
+      <div class="cc-label">Buy vs Rent</div>
+      <div class="cc-title">Cumulative Cost Over Time</div>
+      <div class="cc-subtitle">Breakeven: <span id="breakeven-yr" style="color:var(--sage);font-weight:700;">~7.2 years</span></div>
+      <div class="chart-wrap" style="height:210px;"><canvas id="buyrentChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-label">Price Forecast — Fan Chart</div>
+      <div class="cc-title">Projected Appreciation with CI</div>
+      <div class="cc-subtitle">Shadow band = ±1σ confidence interval</div>
+      <div class="chart-wrap" style="height:210px;"><canvas id="fanChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ML TRANSPARENCY -->
+  <div class="dash-section-label" style="color:var(--neon);"><span class="dsl-line" style="background:var(--neon);"></span>04 — ML TRANSPARENCY</div>
+  <div class="dash-grid-3">
+    <div class="chart-card" style="grid-column:1/3;">
+      <div class="cc-label">Feature Importance (SHAP)</div>
+      <div class="cc-title">What Drives Price Prediction?</div>
+      <div class="cc-subtitle">XGBoost mean |SHAP| across 29,821 properties</div>
+      <div id="featureImportanceViz" style="margin-top:.75rem;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-label">Model Accuracy Gauge</div>
+      <div class="cc-title">Prediction Confidence</div>
+      <div class="cc-subtitle" id="gauge-sub">Model v4.0 · R² 0.9321</div>
+      <div class="gauge-wrap">
+        <canvas id="gaugeChart" width="200" height="110" style="max-width:200px;"></canvas>
+        <div class="gauge-val" id="gauge-val">79%</div>
+        <div class="gauge-lbl">Confidence</div>
+      </div>
+    </div>
+  </div>
+  <div class="dash-grid-2">
+    <div class="chart-card">
+      <div class="cc-label">Price Waterfall</div>
+      <div class="cc-title">Value Attribution — 3BHK Flat, Gurgaon Sec 62</div>
+      <div class="cc-subtitle">Base price + feature contributions = final</div>
+      <div id="waterfallViz" style="margin-top:.75rem;"></div>
+    </div>
+    <div class="chart-card">
+      <div class="cc-label">News Sentiment Signals</div>
+      <div class="cc-title">Recent Events → Price Impact</div>
+      <div class="cc-subtitle" id="sentiment-city">Live market signals</div>
+      <div id="sentimentList" style="margin-top:.75rem;"></div>
+    </div>
+  </div>
+
+  <!-- PER-CITY MAPE BAR CHART -->
+  <div class="dash-section-label" style="color:var(--violet2);"><span class="dsl-line" style="background:var(--violet2);"></span>05 — PER-CITY MODEL PERFORMANCE</div>
+  <div class="dash-grid-full chart-card" style="margin-bottom:1.5rem;">
+    <div class="cc-label">MAPE by City</div>
+    <div class="cc-title">City-Level Prediction Accuracy (lower = better)</div>
+    <div class="cc-subtitle">Production gate: MAPE ≤ 22% · Gate: <span style="color:var(--sage);">PASS ✓</span></div>
+    <div class="chart-wrap" style="height:240px;"><canvas id="cityMapeChart"></canvas></div>
+  </div>
+</div>
+
+<hr class="full-div">
+
+<footer>
+  <div class="foot-brand">PROP<span class="accent">ML</span></div>
+  <div style="display:flex;gap:16px;">
+    <a href="https://github.com/RahulSaini789" target="_blank" style="color:var(--muted2);text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:1px;transition:color .2s;" onmouseover="this.style.color='var(--sage)'" onmouseout="this.style.color='var(--muted2)'">⌥ GitHub · rahulsaini</a>
+    <a href="https://www.linkedin.com/in/rahul-saini-122321229/" target="_blank" style="color:var(--muted2);text-decoration:none;font-size:12px;font-family:var(--mono);letter-spacing:1px;transition:color .2s;" onmouseover="this.style.color='var(--neon)'" onmouseout="this.style.color='var(--muted2)'">in LinkedIn</a>
+  </div>
+  <div class="foot-note">PropML v4.0 · 13 Cities · MAPE 20.31% · Built by Rahul Saini</div>
+  <div class="foot-links">
+    <a href="https://multicity-property-price-prediction-2.onrender.com/docs" target="_blank">API Docs</a>
+    <a href="https://huggingface.co/Dumdigi/multi_city" target="_blank">HuggingFace</a>
+  </div>
+</footer>
+
+<!-- ════════════════════ JS ════════════════════ -->
+<script>
+/* ─── HERO 3D PARTICLE CANVAS ─── */
+(function(){
+  const canvas = document.getElementById('heroCanvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [], mouse = {x:0, y:0};
+
+  function resize(){W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight;}
+  resize(); window.addEventListener('resize', resize);
+
+  const colors = ['#ff5722','#00e5ff','#7c3aed','#00e676','#ffd600','#f50057','#ff7043','#40c4ff'];
+
+  class Particle {
+    constructor(){this.reset();}
+    reset(){
+      this.x = Math.random()*W; this.y = Math.random()*H;
+      this.vx = (Math.random()-.5)*0.6; this.vy = (Math.random()-.5)*0.6;
+      this.r = Math.random()*2+.5;
+      this.color = colors[Math.floor(Math.random()*colors.length)];
+      this.alpha = Math.random()*.6+.2;
+      this.life = Math.random()*200+100;
+      this.age = 0;
+    }
+    update(){
+      this.x += this.vx; this.y += this.vy; this.age++;
+      const dx = this.x - mouse.x, dy = this.y - mouse.y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist < 120){this.vx += dx/dist*.04; this.vy += dy/dist*.04;}
+      if(this.age>this.life||this.x<0||this.x>W||this.y<0||this.y>H)this.reset();
+    }
+    draw(){
+      ctx.save(); ctx.globalAlpha = this.alpha * (1 - this.age/this.life);
+      ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+      ctx.fillStyle = this.color; ctx.fill(); ctx.restore();
+    }
+  }
+
+  for(let i=0;i<180;i++) particles.push(new Particle());
+
+  function drawConnections(){
+    for(let i=0;i<particles.length;i++){
+      for(let j=i+1;j<particles.length;j++){
+        const dx=particles[i].x-particles[j].x, dy=particles[i].y-particles[j].y;
+        const d=Math.sqrt(dx*dx+dy*dy);
+        if(d<100){
+          ctx.save();ctx.globalAlpha=(1-d/100)*.08;
+          ctx.strokeStyle=particles[i].color;ctx.lineWidth=.8;
+          ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);
+          ctx.lineTo(particles[j].x,particles[j].y);ctx.stroke();ctx.restore();
+        }
+      }
+    }
+  }
+
+  function animate(){
+    ctx.clearRect(0,0,W,H);
+    drawConnections();
+    particles.forEach(p=>{p.update();p.draw();});
+    requestAnimationFrame(animate);
+  }
+  animate();
+
+  window.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;});
+})();
+
+/* ─── HERO CITY DATA ─── */
+const cityData = {
+  gurgaon:    {props:'3,417', mape:'21.13%', label:'GURGAON'},
+  noida:      {props:'1,500', mape:'20.72%', label:'NOIDA'},
+  mumbai:     {props:'3,200', mape:'17.33%', label:'MUMBAI'},
+  bangalore:  {props:'2,800', mape:'18.96%', label:'BANGALORE'},
+  hyderabad:  {props:'2,400', mape:'17.14%', label:'HYDERABAD'},
+  jaipur:     {props:'1,800', mape:'28.88%', label:'JAIPUR'},
+};
+let currentCity = 'gurgaon';
+
+function setCity(city, el){
+  currentCity = city;
+  document.querySelectorAll('.ctab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const d = cityData[city] || cityData.gurgaon;
+  document.getElementById('kpi-props').textContent = d.props;
+  document.getElementById('kpi-mape').textContent = d.mape;
+  document.getElementById('city-label').textContent = d.label;
+  document.getElementById('result-box').classList.remove('show');
+}
+
+function setPCity(city, el){
+  document.querySelectorAll('.cpill').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  currentCity = city;
+  document.getElementById('city-label').textContent = (cityData[city]||cityData.gurgaon).label;
+  document.getElementById('result-box').classList.remove('show');
+}
+
+async function doPred() {
+  // 1. Get references to UI elements
+  const btn = document.querySelector('.predict-btn');
+  const resultBox = document.getElementById('result-box');
+  const originalBtnText = btn.innerHTML;
+
+  // 2. Fetch input values from the form
+  const payload = {
+    city: currentCity,
+    type: document.getElementById('f-type').value,
+    area_sqft: Number(document.getElementById('f-area').value) || 1800,
+    bhk: Number(document.getElementById('f-bhk').value),
+    bathrooms: Number(document.getElementById('f-bath').value),
+    floor: Number(document.getElementById('f-floor').value),
+    total_floors: Number(document.getElementById('f-tfloor').value),
+    amenity_score: Number(document.getElementById('f-amenity').value)
+  };
+
+  // 3. Set UI to "Loading" state (Important for cloud APIs)
+  btn.innerHTML = '⏳ CALCULATING LIVE...';
+  btn.style.opacity = '0.7';
+  btn.disabled = true;
+  resultBox.classList.remove('show');
+
+  try {
+    // 4. Hit the Live Render API
+    const API_URL = 'https://multicity-property-price-prediction-2.onrender.com/predict';
+    
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status}`);
+    }
+
+    // 5. Parse the JSON response
+    const data = await response.json();
+
+    // 6. Map API data to your Frontend UI
+    // Note: Verify these keys (data.predicted_price, data.shap_values, etc.) 
+    // match your actual FastAPI Python response dictionary.
+    
+    const priceCr = data.predicted_price_cr || data.price; // Example keys
+    const lowerCr = (priceCr * 0.9).toFixed(2); // Replace with data.lower_bound if API sends it
+    const upperCr = (priceCr * 1.1).toFixed(2); // Replace with data.upper_bound if API sends it
+    const ppsf = Math.round((priceCr * 10000000) / payload.area_sqft);
+
+    document.getElementById('res-price').textContent = `₹ ${priceCr.toFixed(2)} Cr`;
+    document.getElementById('res-range').textContent = `₹${lowerCr}–₹${upperCr} Cr · ₹${ppsf.toLocaleString()}/sqft`;
+
+    // 7. Dynamic SHAP Values rendering
+    // Assuming API sends: shap_values: [{feature: 'city_tier', importance: 48.7}, ...]
+    if (data.shap_values && Array.isArray(data.shap_values)) {
+      const colors = ['linear-gradient(90deg,#ff5722,#ff4081)', 'linear-gradient(90deg,#7c3aed,#40c4ff)', '#ffd600'];
+      
+      const shapHtml = data.shap_values.slice(0, 3).map((f, idx) => `
+        <div class="shap-row">
+          <span class="shap-name">${f.feature || f.name}</span>
+          <div class="shap-track"><div class="shap-fill" style="width:${f.importance}%;background:${colors[idx % colors.length]};"></div></div>
+          <span class="shap-pct">${f.importance}%</span>
+        </div>
+      `).join('');
+      
+      document.getElementById('shap-rows').innerHTML = shapHtml;
+    }
+
+    // Show the result box with animation
+    resultBox.classList.add('show');
+
+  } catch (error) {
+    console.error("Prediction failed:", error);
+    alert("Connection to Live API failed. Server might be waking up or check CORS policy.");
+  } finally {
+    // 8. Restore button state
+    btn.innerHTML = originalBtnText;
+    btn.style.opacity = '1';
+    btn.disabled = false;
+  }
+}
+
+/* ─── REVEAL ─── */
+const io = new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('vis');});
+},{threshold:.07});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+window.addEventListener('scroll',()=>{
+  document.querySelector('nav').style.borderBottomColor = window.scrollY>40?'rgba(255,255,255,0.1)':'rgba(255,255,255,0.06)';
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+/* ─── DASHBOARD DATA ─── */
+const DB = {
+  gurgaon:{
+    label:'Gurgaon',mapeLabel:'Bullish — +18.4% CAGR',listings:'3,417',
+    trend:[0.68,0.74,0.85,0.98,1.22,1.49],
+    donut:[78,18,4],
+    bhkDemand:[8,32,46,10,4],bhkSupply:[12,28,42,13,5],
+    heatmap:[
+      {s:'DLF Ph 1',v:18200},{s:'Golf Crs',v:15400},{s:'Sec 57',v:9800},{s:'Sec 65',v:11200},
+      {s:'Sec 92',v:7600},{s:'Sohna Rd',v:6200},{s:'Sec 82',v:8400},{s:'Sec 47',v:10100},
+      {s:'Gwal Phr',v:22000},{s:'Sec 67',v:9200},{s:'Sec 102',v:7100},{s:'Manesar',v:5800}
+    ],
+    scatter:[
+      {x:1,y:18200,r:8,label:'DLF Ph1'},{x:2,y:15400,r:6,label:'Golf Crs'},
+      {x:4,y:10100,r:10,label:'Sec 47'},{x:6,y:9200,r:8,label:'Sec 67'},
+      {x:8,y:7600,r:12,label:'Sec 92'},{x:10,y:6200,r:9,label:'Sohna Rd'},
+      {x:12,y:5800,r:5,label:'Manesar'},
+    ],
+    breakeven:7.2,basePrice:1.49,growth:0.092,gauge:79,confidence:'79%',
+  },
+  noida:{
+    label:'Noida',mapeLabel:'Growth — +14.2% CAGR',listings:'1,500',
+    trend:[0.42,0.48,0.56,0.65,0.80,0.95],
+    donut:[82,12,6],
+    bhkDemand:[5,28,52,12,3],bhkSupply:[8,32,44,12,4],
+    heatmap:[
+      {s:'Sec 62',v:9200},{s:'Sec 137',v:7800},{s:'Sec 150',v:11400},{s:'Grt Nda',v:5200},
+      {s:'Sec 18',v:8800},{s:'Sec 44',v:7200},{s:'Sec 76',v:6800},{s:'Sec 100',v:8100},
+      {s:'Sec 120',v:6200},{s:'Sec 168',v:7400},{s:'KP 3',v:4800},{s:'KP 5',v:5100}
+    ],
+    scatter:[
+      {x:1,y:11400,r:6,label:'Sec 150'},{x:2,y:9200,r:10,label:'Sec 62'},
+      {x:3,y:8800,r:8,label:'Sec 18'},{x:5,y:7800,r:7,label:'Sec 137'},
+      {x:7,y:6800,r:9,label:'Sec 76'},{x:9,y:5200,r:12,label:'Grt Nda'},
+    ],
+    breakeven:8.1,basePrice:0.95,growth:0.072,gauge:74,confidence:'74%',
+  },
+  chandigarh:{
+    label:'Chandigarh',mapeLabel:'Stable — +10.8% CAGR',listings:'507',
+    trend:[0.55,0.60,0.68,0.78,0.93,1.10],
+    donut:[60,34,6],
+    bhkDemand:[4,22,38,26,10],bhkSupply:[6,24,36,24,10],
+    heatmap:[
+      {s:'Sec 7',v:12800},{s:'Sec 10',v:11200},{s:'Sec 17',v:9800},{s:'Sec 20',v:8600},
+      {s:'Sec 22',v:9200},{s:'Sec 35',v:7800},{s:'Mohali',v:7200},{s:'Pch Sec5',v:6800},
+      {s:'Sec 33',v:8100},{s:'Sec 43',v:7600},{s:'Zirakpr',v:5900},{s:'Aerocity',v:8400}
+    ],
+    scatter:[
+      {x:1,y:12800,r:7,label:'Sec 7'},{x:2,y:11200,r:6,label:'Sec 10'},
+      {x:3,y:9800,r:9,label:'Sec 17'},{x:5,y:8400,r:7,label:'Aerocity'},
+      {x:7,y:7200,r:10,label:'Mohali'},{x:10,y:5900,r:6,label:'Zirakpur'},
+    ],
+    breakeven:6.8,basePrice:1.10,growth:0.065,gauge:76,confidence:'76%',
+  },
+  kota:{
+    label:'Kota',mapeLabel:'Coaching hub — steady',listings:'576',
+    trend:[0.20,0.23,0.26,0.30,0.38,0.45],
+    donut:[58,38,4],
+    bhkDemand:[18,42,28,10,2],bhkSupply:[20,38,30,10,2],
+    heatmap:[
+      {s:'Central',v:3800},{s:'Allen Zn',v:4200},{s:'Resonanc',v:4000},{s:'S Kota',v:3200},
+      {s:'E Kota',v:2900},{s:'W Kota',v:2600},{s:'Vigyan',v:3600},{s:'Mahaveer',v:2800},
+    ],
+    scatter:[
+      {x:1,y:4200,r:8,label:'Allen Zone'},{x:2,y:4000,r:7,label:'Resonance'},
+      {x:3,y:3800,r:9,label:'Central'},{x:4,y:3600,r:6,label:'Vigyan'},
+      {x:6,y:2900,r:10,label:'E Kota'},{x:8,y:2600,r:7,label:'W Kota'},
+    ],
+    breakeven:9.4,basePrice:0.45,growth:0.055,gauge:68,confidence:'68%',
+  }
+};
+
+const FEATURES = [
+  {name:'city_tier_num',   val:0.487, col:'linear-gradient(90deg,#ff5722,#ff4081)'},
+  {name:'is_plot',         val:0.232, col:'linear-gradient(90deg,#7c3aed,#a78bfa)'},
+  {name:'bhk_x_city',      val:0.064, col:'#ffd600'},
+  {name:'locality_encoded',val:0.058, col:'#00e676'},
+  {name:'city_encoded',    val:0.036, col:'#00e5ff'},
+  {name:'total_floors',    val:0.024, col:'#40c4ff'},
+  {name:'area_x_city_tier',val:0.019, col:'#f50057'},
+  {name:'bathroom',        val:0.012, col:'#ff7043'},
+  {name:'area_x_city_enc', val:0.010, col:'#ff4081'},
+  {name:'area_x_locality', val:0.008, col:'#7c3aed'},
+];
+
+const CITY_MAPES = [
+  {city:'Pune',mape:15.51,col:'#00e676'},{city:'Ahmedabad',mape:16.07,col:'#00e5ff'},
+  {city:'Hyderabad',mape:17.14,col:'#40c4ff'},{city:'Mumbai',mape:17.33,col:'#7c3aed'},
+  {city:'Bangalore',mape:18.96,col:'#a78bfa'},{city:'Noida',mape:20.72,col:'#ffd600'},
+  {city:'Gurgaon',mape:21.13,col:'#ff7043'},{city:'Indore',mape:21.76,col:'#ff5722'},
+  {city:'Chennai',mape:22.22,col:'#f50057'},{city:'Delhi',mape:22.57,col:'#ff4081'},
+  {city:'Kota',mape:24.26,col:'#f50057'},{city:'Chandigarh',mape:26.34,col:'#ff5722'},
+  {city:'Jaipur',mape:28.88,col:'#ff0000'},
+];
+
+const WATERFALL = [
+  {name:'Base Price',val:85,type:'base'},{name:'+3 BHK',val:12,type:'pos'},
+  {name:'+Floor 5/15',val:4,type:'pos'},{name:'+Metro nearby',val:8,type:'pos'},
+  {name:'+Amenity 7/10',val:6,type:'pos'},{name:'-Age (5yr)',val:-5,type:'neg'},
+  {name:'-No pool',val:-3,type:'neg'},{name:'Final Price',val:107,type:'total'},
+];
+
+const SENTIMENT = [
+  {news:'Jewar Airport Phase 2 construction begins',city:'Noida',dir:'up',impact:'+4.2%'},
+  {news:'Metro Line 9: Gurgaon–IGI approved',city:'Gurgaon',dir:'up',impact:'+2.8%'},
+  {news:'Allen opens new campus Vigyan Nagar',city:'Kota',dir:'up',impact:'+1.9%'},
+  {news:'Property tax hike proposed Chandigarh',city:'Chandigarh',dir:'dn',impact:'-1.1%'},
+  {news:'IT Park Sector 62 Phase 3 announced',city:'Noida',dir:'up',impact:'+3.1%'},
+  {news:'RERA deadline extension — builder delays',city:'Gurgaon',dir:'nu',impact:'±0.5%'},
+];
+
+let charts = {};
+let dashCity = 'gurgaon';
+
+const CJSD = {
+  animation:{duration:700},
+  plugins:{legend:{display:false},tooltip:{
+    backgroundColor:'rgba(8,12,24,0.95)',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,
+    titleColor:'#e2e8f5',bodyColor:'#4a5572',padding:10,cornerRadius:8
+  }},
+  scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5572',font:{size:11,family:'JetBrains Mono'}}},
+          y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#4a5572',font:{size:11,family:'JetBrains Mono'}}}}
+};
+
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function buildTrend(city){
+  dc('trend');
+  const d = DB[city];
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  const g = ctx.createLinearGradient(0,0,0,200);
+  g.addColorStop(0,'rgba(255,87,34,0.35)');g.addColorStop(1,'rgba(255,87,34,0)');
+  charts['trend'] = new Chart(ctx,{
+    type:'line',
+    data:{labels:['2020','2021','2022','2023','2024','2025'],datasets:[{
+      label:'Avg Price',data:d.trend,
+      borderColor:'#ff5722',backgroundColor:g,
+      borderWidth:2.5,pointBackgroundColor:'#ff5722',pointRadius:5,tension:0.4,fill:true
+    }]},
+    options:{...CJSD,plugins:{...CJSD.plugins,tooltip:{...CJSD.plugins.tooltip,callbacks:{label:c=>'₹ '+c.raw.toFixed(2)+' Cr'}}}}
+  });
+  document.getElementById('trend-subtitle').textContent = d.label+' — '+d.mapeLabel;
+}
+
+function buildDonut(city){
+  dc('donut');
+  const d = DB[city];
+  charts['donut'] = new Chart(document.getElementById('donutChart'),{
+    type:'doughnut',
+    data:{labels:['Flat','House','Plot'],datasets:[{
+      data:d.donut,
+      backgroundColor:['#ff5722','#00e5ff','#7c3aed'],
+      borderColor:'#080c18',borderWidth:3,hoverOffset:10
+    }]},
+    options:{animation:{duration:700},cutout:'65%',plugins:{
+      legend:{display:true,position:'bottom',labels:{color:'#6b7a9a',font:{size:11,family:'JetBrains Mono'},padding:14,usePointStyle:true}},
+      tooltip:{...CJSD.plugins.tooltip,callbacks:{label:c=>c.label+': '+c.raw+'%'}}
+    }}
+  });
+  document.getElementById('donut-subtitle').textContent = d.label+' · '+d.listings+' listings';
+}
+
+function buildBhk(city){
+  dc('bhk');
+  const d = DB[city];
+  charts['bhk'] = new Chart(document.getElementById('bhkChart'),{
+    type:'bar',
+    data:{labels:['1 BHK','2 BHK','3 BHK','4 BHK','5+ BHK'],datasets:[
+      {label:'Demand %',data:d.bhkDemand,backgroundColor:'rgba(255,87,34,0.75)',borderRadius:6,barPercentage:.42},
+      {label:'Supply %',data:d.bhkSupply,backgroundColor:'rgba(0,230,118,0.65)',borderRadius:6,barPercentage:.42}
+    ]},
+    options:{...CJSD,plugins:{...CJSD.plugins},
+      scales:{x:{...CJSD.scales.x},y:{...CJSD.scales.y,ticks:{...CJSD.scales.y.ticks,callback:v=>v+'%'}}}}
+  });
+}
+
+function buildHeatmap(city){
+  const d = DB[city];
+  const max = Math.max(...d.heatmap.map(h=>h.v));
+  const min = Math.min(...d.heatmap.map(h=>h.v));
+  document.getElementById('heatmapGrid').innerHTML = d.heatmap.map(h=>{
+    const t = (h.v-min)/(max-min);
+    const r=Math.round(20+t*235),g=Math.round(30-t*10),b=Math.round(100+t*120);
+    return `<div class="hm-cell" style="background:rgba(${r},${g},${b},0.7);" title="${h.s}: ₹${h.v.toLocaleString()}/sqft">
+      <div class="hm-sector">${h.s}</div><div class="hm-val">₹${(h.v/1000).toFixed(1)}k</div></div>`;
+  }).join('');
+  document.getElementById('hm-subtitle').textContent = d.label+' · Darker = Pricier';
+}
+
+function buildRadar(city){
+  dc('radar');
+  const rd = {
+    gurgaon:[[9,8,7,9,8],[5,4,6,5,4]],
+    noida:[[8,7,9,7,7],[4,5,5,6,5]],
+    chandigarh:[[7,9,8,8,9],[5,6,7,6,7]],
+    kota:[[5,4,3,6,5],[4,3,3,5,4]],
+  };
+  const [p1,p2] = rd[city];
+  charts['radar'] = new Chart(document.getElementById('radarChart'),{
+    type:'radar',
+    data:{labels:['Metro','Schools','Greenery','Hospitals','Shopping'],datasets:[
+      {label:'Premium',data:p1,backgroundColor:'rgba(255,87,34,0.15)',borderColor:'#ff5722',borderWidth:2,pointBackgroundColor:'#ff5722',pointRadius:3},
+      {label:'Budget', data:p2,backgroundColor:'rgba(0,229,255,0.1)',borderColor:'#00e5ff',borderWidth:2,pointBackgroundColor:'#00e5ff',pointRadius:3}
+    ]},
+    options:{animation:{duration:700},plugins:{legend:{display:true,position:'bottom',labels:{color:'#6b7a9a',font:{size:10,family:'JetBrains Mono'},padding:10,usePointStyle:true}},tooltip:{...CJSD.plugins.tooltip}},
+      scales:{r:{grid:{color:'rgba(255,255,255,0.06)'},ticks:{display:false},pointLabels:{color:'#4a5572',font:{size:10}},suggestedMin:0,suggestedMax:10,angleLines:{color:'rgba(255,255,255,0.04)'}}}}
+  });
+}
+
+function buildScatter(city){
+  dc('scatter');
+  const d = DB[city];
+  charts['scatter'] = new Chart(document.getElementById('scatterChart'),{
+    type:'bubble',
+    data:{datasets:[{label:'Sectors',data:d.scatter.map(p=>({x:p.x,y:p.y,r:p.r,label:p.label})),
+      backgroundColor:'rgba(0,229,255,0.5)',borderColor:'rgba(0,229,255,0.8)',borderWidth:1}]},
+    options:{...CJSD,plugins:{...CJSD.plugins,tooltip:{...CJSD.plugins.tooltip,callbacks:{label:c=>`${c.raw.label}: ₹${c.raw.y.toLocaleString()}/sqft at ${c.raw.x}km`}}},
+      scales:{x:{...CJSD.scales.x,title:{display:true,text:'Distance (km)',color:'#4a5572',font:{size:11}}},
+              y:{...CJSD.scales.y,title:{display:true,text:'₹ per sqft',color:'#4a5572',font:{size:11}},ticks:{...CJSD.scales.y.ticks,callback:v=>'₹'+v.toLocaleString()}}}}
+  });
+}
+
+function buildBuyRent(city){
+  dc('buyrent');
+  const d = DB[city];
+  const price = d.basePrice*1e7, rent = price*0.003;
+  const yrs = Array.from({length:15},(_,i)=>i+1);
+  const buyCost = yrs.map(y=>price+price*0.07*y-price*Math.pow(1+d.growth,y));
+  const rentCost = yrs.map(y=>rent*12*y);
+  const ctx = document.getElementById('buyrentChart').getContext('2d');
+  const gB = ctx.createLinearGradient(0,0,0,210); gB.addColorStop(0,'rgba(255,87,34,.3)'); gB.addColorStop(1,'rgba(255,87,34,0)');
+  const gR = ctx.createLinearGradient(0,0,0,210); gR.addColorStop(0,'rgba(0,229,255,.2)'); gR.addColorStop(1,'rgba(0,229,255,0)');
+  charts['buyrent'] = new Chart(ctx,{
+    type:'line',
+    data:{labels:yrs.map(y=>y+'yr'),datasets:[
+      {label:'Buy Cost',data:buyCost.map(v=>+(v/1e5).toFixed(1)),borderColor:'#ff5722',backgroundColor:gB,fill:true,tension:0.4,borderWidth:2.5},
+      {label:'Rent Cost',data:rentCost.map(v=>+(v/1e5).toFixed(1)),borderColor:'#00e5ff',backgroundColor:gR,fill:true,tension:0.4,borderWidth:2.5}
+    ]},
+    options:{...CJSD,plugins:{...CJSD.plugins,legend:{display:true,position:'top',labels:{color:'#6b7a9a',font:{size:11,family:'JetBrains Mono'},usePointStyle:true}}},
+      scales:{x:{...CJSD.scales.x},y:{...CJSD.scales.y,ticks:{...CJSD.scales.y.ticks,callback:v=>'₹'+v+'L'}}}}
+  });
+  document.getElementById('breakeven-yr').textContent = '~'+d.breakeven+' years';
+}
+
+function buildFan(city){
+  dc('fan');
+  const d = DB[city];
+  const p0=d.basePrice,r=d.growth,sigma=0.04;
+  const yrs=[0,0.5,1,1.5,2];
+  const mid=yrs.map(n=>+(p0*Math.pow(1+r,n)).toFixed(3));
+  const hi=yrs.map(n=>+(p0*Math.pow(1+r+sigma,n)).toFixed(3));
+  const lo=yrs.map(n=>+(p0*Math.pow(1+r-sigma,n)).toFixed(3));
+  const ctx = document.getElementById('fanChart').getContext('2d');
+  const gS = ctx.createLinearGradient(0,0,0,200); gS.addColorStop(0,'rgba(0,230,118,0.2)'); gS.addColorStop(1,'rgba(0,230,118,0)');
+  charts['fan'] = new Chart(ctx,{
+    type:'line',
+    data:{labels:['Now','6mo','1yr','18mo','2yr'],datasets:[
+      {label:'+1σ',data:hi,borderColor:'rgba(0,230,118,0.3)',backgroundColor:gS,fill:'+1',borderWidth:1,borderDash:[4,4],tension:0.4,pointRadius:0},
+      {label:'Predicted',data:mid,borderColor:'#00e676',backgroundColor:'transparent',borderWidth:2.5,pointBackgroundColor:'#00e676',pointRadius:4,tension:0.4},
+      {label:'-1σ',data:lo,borderColor:'rgba(0,230,118,0.3)',backgroundColor:'transparent',fill:false,borderWidth:1,borderDash:[4,4],tension:0.4,pointRadius:0}
+    ]},
+    options:{...CJSD,plugins:{...CJSD.plugins,legend:{display:false},tooltip:{...CJSD.plugins.tooltip,callbacks:{label:c=>'₹ '+c.raw.toFixed(2)+' Cr'}}},
+      scales:{x:{...CJSD.scales.x},y:{...CJSD.scales.y,ticks:{...CJSD.scales.y.ticks,callback:v=>'₹'+v+'Cr'}}}}
+  });
+}
+
+function buildFeatureImportance(){
+  const maxV = FEATURES[0].val;
+  document.getElementById('featureImportanceViz').innerHTML = FEATURES.map(f=>`
+    <div class="waterfall-bar">
+      <span class="wf-name">${f.name}</span>
+      <div class="wf-bar-wrap">
+        <div class="wf-bar-fill" style="width:${Math.round(f.val/maxV*100)}%;background:${f.col};">
+          <span style="font-size:11px;color:rgba(255,255,255,.9);font-family:'JetBrains Mono';">${(f.val*100).toFixed(1)}%</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function buildGauge(city){
+  const score = DB[city].gauge/100;
+  const canvas = document.getElementById('gaugeChart');
+  const ctx = canvas.getContext('2d');
+  canvas.width=200;canvas.height=110;
+  ctx.clearRect(0,0,200,110);
+  const cx=100,cy=100,r=80;
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,2*Math.PI);
+  ctx.strokeStyle='rgba(255,255,255,0.06)';ctx.lineWidth=16;ctx.lineCap='round';ctx.stroke();
+  const color = score>.75?'#00e676':score>.55?'#ffd600':'#ff5722';
+  const g = ctx.createLinearGradient(-80,0,80,0);
+  g.addColorStop(0,'#ff5722');g.addColorStop(.5,color);g.addColorStop(1,'#00e5ff');
+  ctx.beginPath();ctx.arc(cx,cy,r,Math.PI,Math.PI+score*Math.PI);
+  ctx.strokeStyle=g;ctx.lineWidth=16;ctx.lineCap='round';ctx.stroke();
+  const el = document.getElementById('gauge-val');
+  el.textContent = DB[city].confidence;
+  el.style.color = color;
+}
+
+function buildWaterfall(){
+  document.getElementById('waterfallViz').innerHTML = WATERFALL.map(w=>{
+    const col = w.type==='base'?'linear-gradient(90deg,#00e5ff,#7c3aed)':w.type==='total'?'linear-gradient(90deg,#ffd600,#ff5722)':w.val>0?'linear-gradient(90deg,#00e676,#00e5ff)':'linear-gradient(90deg,#ff5722,#f50057)';
+    const pct = Math.abs(w.val)/107*100;
+    const prefix = w.type==='pos'?'+':w.type==='neg'?'':w.type==='total'?'=':'';
+    return `<div class="waterfall-bar">
+      <span class="wf-name">${w.name}</span>
+      <div class="wf-bar-wrap"><div class="wf-bar-fill" style="width:${Math.max(pct,5)}%;background:${col};">
+        <span style="font-size:10px;color:rgba(255,255,255,.9);font-family:'JetBrains Mono';">${prefix}${w.val}L</span>
+      </div></div></div>`;
+  }).join('');
+}
+
+function buildSentiment(city){
+  document.getElementById('sentimentList').innerHTML = SENTIMENT.map(s=>`
+    <div class="sentiment-row">
+      <span class="sent-news">${s.news} <span style="font-size:10px;color:var(--muted);">[${s.city}]</span></span>
+      <span class="sent-impact ${s.dir==='up'?'sent-up':s.dir==='dn'?'sent-dn':'sent-nu'}">${s.impact}</span>
+    </div>`).join('');
+  document.getElementById('sentiment-city').textContent = DB[city].label+' market signals';
+}
+
+function buildCityMape(){
+  dc('cityMape');
+  const ctx = document.getElementById('cityMapeChart').getContext('2d');
+  charts['cityMape'] = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels: CITY_MAPES.map(c=>c.city),
+      datasets:[{
+        label:'MAPE %',
+        data: CITY_MAPES.map(c=>c.mape),
+        backgroundColor: CITY_MAPES.map(c=>c.col+'bb'),
+        borderColor: CITY_MAPES.map(c=>c.col),
+        borderWidth:1,borderRadius:6,
+      }]
+    },
+    options:{
+      ...CJSD,
+      plugins:{...CJSD.plugins,
+        tooltip:{...CJSD.plugins.tooltip,callbacks:{label:c=>c.raw.toFixed(2)+'% MAPE'}},
+        annotation:{annotations:{line1:{type:'line',yMin:22,yMax:22,borderColor:'rgba(255,87,34,.5)',borderWidth:2,borderDash:[6,4],label:{content:'Gate: 22%',display:true,color:'#ff5722',font:{size:10}}}}}
+      },
+      scales:{
+        x:{...CJSD.scales.x,ticks:{color:'#6b7a9a',font:{size:10,family:'JetBrains Mono'}}},
+        y:{...CJSD.scales.y,min:14,max:30,ticks:{...CJSD.scales.y.ticks,callback:v=>v+'%'}}
+      }
+    }
+  });
+}
+
+function dashSetCity(city,el){
+  dashCity=city;
+  document.querySelectorAll('.df-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  buildTrend(city);buildDonut(city);buildBhk(city);
+  buildHeatmap(city);buildRadar(city);buildScatter(city);
+  buildBuyRent(city);buildFan(city);buildGauge(city);buildSentiment(city);
+}
+
+window.addEventListener('load',()=>{
+  buildTrend('gurgaon');buildDonut('gurgaon');buildBhk('gurgaon');
+  buildHeatmap('gurgaon');buildRadar('gurgaon');buildScatter('gurgaon');
+  buildBuyRent('gurgaon');buildFan('gurgaon');
+  buildFeatureImportance();buildGauge('gurgaon');
+  buildWaterfall();buildSentiment('gurgaon');
+  buildCityMape();
+});
+</script>
+</body>
+</html>
