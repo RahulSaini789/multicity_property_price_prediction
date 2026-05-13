@@ -1,14 +1,61 @@
+# .github/workflows/nightly_scrape.yml
+# Nightly MagicBricks scrape + DVC push
+#
+# Runs every night at 02:00 IST (20:30 UTC)
+# Can also be triggered manually from GitHub UI (workflow_dispatch)
+
 name: Nightly Scrape
 
 on:
   schedule:
-    - cron: '30 20 * * *'   # 02:00 IST daily
-  workflow_dispatch:
+    - cron: "30 20 * * *"   # 02:00 IST daily
+  workflow_dispatch:         # manual trigger from GitHub Actions UI
 
 jobs:
-  placeholder:
+  scrape:
+    name: Scrape All Cities
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: placeholder
-        run: echo "Scraper — full implementation added in Week 3"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright==1.40.0 pandas==2.2.0 pyarrow==14.0.2
+          pip install dvc==3.38.1 "dvc-s3==3.0.1" pyyaml==6.0.1
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Configure DVC S3 remote
+        run: |
+          dvc remote modify s3remote access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+          dvc remote modify s3remote secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+      - name: Run scraper — all 4 cities
+        run: python src/ingestion/run_all_cities.py
+
+      - name: Validate scraped data
+        run: python src/validation/validate_schema.py --city all
+
+      - name: DVC add + push
+        run: |
+          dvc add data/raw/
+          dvc push
+
+      - name: Commit DVC changes
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add data/raw.dvc dvc.lock
+          git commit -m "data: nightly scrape $(date +%Y-%m-%d)" || echo "No DVC changes"
+          git push
+
+      - name: Check drift — trigger retrain if needed
+        run: |
+          if [ -f src/monitoring/drift_monitor.py ]; then
+            python src/monitoring/drift_monitor.py
+          fi
