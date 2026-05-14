@@ -966,7 +966,7 @@ async function doPred() {
     // Note: Verify these keys (data.predicted_price, data.shap_values, etc.) 
     // match your actual FastAPI Python response dictionary.
     
-    const priceCr = data.predicted_price_cr || data.price; // Example keys
+    const priceCr = data.prediction_cr; // Example keys
     const lowerCr = (priceCr * 0.9).toFixed(2); // Replace with data.lower_bound if API sends it
     const upperCr = (priceCr * 1.1).toFixed(2); // Replace with data.upper_bound if API sends it
     const ppsf = Math.round((priceCr * 10000000) / payload.area_sqft);
