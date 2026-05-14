@@ -42,9 +42,15 @@ stages:
       md5: 6b4613a9033d944f265e5f8150d635fc.dir
       size: 2196127
       nfiles: 13
+    - path: reports/validation/
+      hash: md5
+      md5: dd4da2b82afe570975f2799533a42c2e.dir
+      size: 65573
+      nfiles: 13
     - path: src/cleaning/cleaning_pipeline.py
-      md5: 026787710fae2825b7a63f9ecfb576d1
-      size: 37719
+      hash: md5
+      md5: 9d02e0be19cd0d8166420afc9a2bc39a
+      size: 37879
     params:
       params.yaml:
         cleaning.iqr_multiplier: 1.5
@@ -61,8 +67,9 @@ stages:
       md5: 819cbefc19796d46459ff56338ebc4a4
       size: 1934610
     - path: src/features/feature_engineering.py
-      md5: d3878ff1c3963e37a4a8f002e7ccf25a
-      size: 41186
+      hash: md5
+      md5: 170c54858c1865dba277a610c19866b9
+      size: 41133
     params:
       params.yaml:
         features.amenity_weights:
@@ -84,21 +91,20 @@ stages:
   enrich_osm:
     cmd: python src/features/feature_engineering.py --enrich-osm
     deps:
-    - path: data/raw/
-      md5: 6b4613a9033d944f265e5f8150d635fc.dir
-      size: 2196127
-      nfiles: 13
+    - path: data/cleaned/combined_cleaned.parquet
+      hash: md5
+      md5: 819cbefc19796d46459ff56338ebc4a4
+      size: 1934610
     - path: src/features/feature_engineering.py
-      md5: d3878ff1c3963e37a4a8f002e7ccf25a
-      size: 41186
-    params:
-      params.yaml:
-        scraping.max_listings_per_city: 3000
+      hash: md5
+      md5: 170c54858c1865dba277a610c19866b9
+      size: 41133
     outs:
     - path: data/osm_cache/
-      md5: 1d4d79b529ec2de54661d81959a0b28a.dir
-      size: 59098
-      nfiles: 13425
+      hash: md5
+      md5: ab9884a01570e79f6f0ebfb33b360d9e.dir
+      size: 306013
+      nfiles: 5070
   train:
     cmd: python src/training/train.py --trials 100
     deps:
