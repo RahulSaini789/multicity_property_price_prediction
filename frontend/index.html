@@ -536,6 +536,25 @@ footer{border-top:1px solid var(--border);padding:3rem;max-width:1300px;margin:0
   </div>
 </div>
 
+
+<hr class="full-div">
+
+<!-- ═══ PROPERTY RECOMMENDATIONS ═══ -->
+<div class="sec reveal" id="recommend">
+  <div class="sec-eyebrow">AI Property Recommendations</div>
+  <h2>Properties You'd Love</h2>
+  <p class="sec-sub">Curated picks based on value-for-money score, SHAP confidence, and city tier analysis. Click to explore.</p>
+  <div style="display:flex;gap:10px;margin-bottom:2rem;flex-wrap:wrap;">
+    <button onclick="filterRec('all',this)" style="padding:6px 16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid var(--border2);border-radius:8px;background:linear-gradient(135deg,var(--ember),var(--pink));color:#fff;cursor:pointer;" id="rf-all">All</button>
+    <button onclick="filterRec('tier1',this)" style="padding:6px 16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted2);cursor:pointer;">Tier 1</button>
+    <button onclick="filterRec('budget',this)" style="padding:6px 16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted2);cursor:pointer;">Under ₹1Cr</button>
+    <button onclick="filterRec('luxury',this)" style="padding:6px 16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted2);cursor:pointer;">₹3Cr+</button>
+    <button onclick="filterRec('roi',this)" style="padding:6px 16px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:2px;border:1px solid var(--border2);border-radius:8px;background:transparent;color:var(--muted2);cursor:pointer;">Best ROI</button>
+  </div>
+  <div id="recGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.25rem;"></div>
+</div>
+
+
 <hr class="full-div">
 
 <!-- ═══ PIPELINE ═══ -->
@@ -1401,9 +1420,7 @@ window.addEventListener('load',()=>{
   buildFeatureImportance();buildGauge('gurgaon');
   buildWaterfall();buildSentiment('gurgaon');
   buildCityMape();
-});
-
-/* ─── RECOMMENDATIONS ─── */
+  /* ─── RECOMMENDATIONS ─── */
 const REC_DATA=[
   {city:'Mumbai',tier:'tier1',area:'Powai',title:'3 BHK Lake View Flat',sqft:1650,price:3.2,badge:'HOT',badgeCol:'#ff5722',match:94,emoji:'🏙️',budget:false,luxury:true,roi:false},
   {city:'Bangalore',tier:'tier1',area:'Whitefield',title:'2 BHK IT Corridor Flat',sqft:1100,price:1.15,badge:'VALUE',badgeCol:'#00e5ff',match:91,emoji:'💻',budget:false,luxury:false,roi:true},
@@ -1418,8 +1435,8 @@ const REC_DATA=[
 let recF='all';
 function filterRec(f,el){
   recF=f;
-  document.querySelectorAll('#recommend button').forEach(b=>{b.style.background='transparent';b.style.color='var(--muted2)';});
-  el.style.background='linear-gradient(135deg,#ff5722,#f50057)';
+  document.querySelectorAll('#recommend button').forEach(b=>b.style.background='transparent');
+  el.style.background='linear-gradient(135deg,var(--ember),var(--pink))';
   el.style.color='#fff';
   renderRec();
 }
@@ -1432,13 +1449,11 @@ function renderRec(){
     if(recF==='roi')return p.roi;
     return true;
   });
-  const el=document.getElementById('recGrid');
-  if(!el)return;
-  el.innerHTML=data.map(p=>`
-    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;transition:all .3s;cursor:pointer;" onmouseover="this.style.transform='translateY(-6px)';this.style.borderColor='rgba(255,87,34,.3)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(255,255,255,.08)'">
+  document.getElementById('recGrid').innerHTML=data.map(p=>`
+    <div style="background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;transition:all .3s;cursor:pointer;" onmouseover="this.style.transform='translateY(-6px)';this.style.borderColor='rgba(255,87,34,.3)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(255,255,255,.08)'">
       <div style="height:140px;background:linear-gradient(135deg,rgba(255,87,34,.1),rgba(124,58,237,.1));display:flex;align-items:center;justify-content:center;font-size:3.5rem;position:relative;">
         ${p.emoji}
-        <span style="position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.7);color:${p.badgeCol};border:1px solid ${p.badgeCol}44;">${p.badge}</span>
+        <span style="position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.6);color:${p.badgeCol};border:1px solid ${p.badgeCol}44;">${p.badge}</span>
         <span style="position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.7);color:${p.match>90?'#00e676':p.match>85?'#ffd600':'#ff5722'};">${p.match}% Match</span>
       </div>
       <div style="padding:1.25rem;">
@@ -1446,11 +1461,14 @@ function renderRec(){
         <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;margin-bottom:8px;">${p.title}</div>
         <div style="font-family:var(--serif);font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#ffd600,#ff5722);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">₹ ${p.price} Cr</div>
         <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-top:4px;margin-bottom:12px;">₹${Math.round(p.price*1e7/p.sqft).toLocaleString()}/sqft · ${p.sqft.toLocaleString()} sqft</div>
-        <div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;"><div style="width:${p.match}%;height:100%;background:linear-gradient(90deg,#00e676,#00e5ff);"></div></div>
+        <div style="height:3px;background:var(--border2);border-radius:2px;overflow:hidden;">
+          <div style="width:${p.match}%;height:100%;background:linear-gradient(90deg,#00e676,#00e5ff);border-radius:2px;"></div>
+        </div>
       </div>
     </div>`).join('');
 }
-document.addEventListener('DOMContentLoaded', renderRec);
+renderRec();
+});
 </script>
 </body>
 </html>
