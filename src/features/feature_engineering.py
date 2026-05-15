@@ -289,14 +289,52 @@ out center 1;
     return result
 
 
+AMENITY_CATALOG = [
+    # (keywords_list, weight, flag_name)
+    (["swimming pool", "pool"],                    1.0, "has_pool"),
+    (["gym", "fitness", "gymnasium"],              1.0, "has_gym"),
+    (["club house", "clubhouse"],                  0.8, "has_clubhouse"),
+    (["lift", "elevator"],                         0.6, "has_lift"),
+    (["security", "cctv", "guard"],                0.5, "has_security"),
+    (["power backup", "generator", "dg backup"],   0.5, "has_power_backup"),
+    (["park", "garden", "green"],                  0.5, "has_park"),
+    (["playground", "play area", "kids"],          0.4, "has_playground"),
+    (["intercom", "video door"],                   0.4, "has_intercom"),
+    (["rainwater", "rain water harvesting"],       0.4, "has_rainwater"),
+    (["wifi", "internet", "broadband"],            0.4, "has_wifi"),
+    (["air condition", "ac ", "a/c"],              0.5, "has_ac"),
+    (["modular kitchen", "modular"],               0.4, "has_modular_kitchen"),
+    (["servant", "maid room"],                     0.3, "has_servant_room"),
+    (["study room", "library"],                    0.3, "has_study_room"),
+    (["store room", "storeroom"],                  0.2, "has_store_room"),
+    (["vaastu", "vastu"],                          0.2, "has_vaastu"),
+    (["solar", "solar panel"],                     0.3, "has_solar"),
+    (["hospital", "medical"],                      0.3, "near_hospital"),
+    (["school", "college", "university"],          0.3, "near_school"),
+    (["market", "mall", "shopping"],               0.3, "near_market"),
+    (["metro", "subway"],                          0.5, "near_metro"),
+    (["bus", "transport"],                         0.3, "near_bus"),
+    (["temple", "church", "mosque"],               0.2, "near_religious"),
+    (["sports", "tennis", "badminton", "cricket"], 0.4, "has_sports"),
+    (["amphitheatre", "community hall"],           0.3, "has_community_hall"),
+    (["visitor parking", "parking"],               0.3, "has_parking"),
+    (["fire safety", "fire noc", "sprinkler"],     0.3, "has_fire_safety"),
+]
+
+
 def enrich_osm_distances(df: pd.DataFrame) -> pd.DataFrame:
     """
-    OSM enrichment — locality-level caching (not row-level).
+    OSM enrichment — FAST city-level bbox bulk query.
 
-    Key optimization: group by rounded lat/lng (2 decimal = ~1km grid).
-    Instead of 17000 queries, only unique grid cells queried.
-    Typical reduction: 17000 rows -> 200-400 unique grid cells.
-    Time: ~400 cells x 5 facilities x 1.1s = ~35 mins (was 26 hours).
+    Strategy: Instead of 3611 individual grid-cell queries (18,055 total API
+    calls), fetch ALL facilities for an entire city in ONE bbox query.
+    13 cities × 5 facilities = 65 API calls total. ~3 mins instead of 7 hrs.
+
+    How it works:
+    1. Per city, compute bounding box (min/max lat/lng + 0.1 degree padding)
+    2. Single Overpass query fetches ALL hospitals/schools/etc in that bbox
+    3. For each property, find nearest facility using haversine distance
+    4. Cache results per city to data/osm_cache/city_{city}_{facility}.json
     """
     facilities = ["hospital", "school", "metro", "market", "park"]
     dist_cols  = [f"dist_{f}_km" for f in facilities]
@@ -313,108 +351,106 @@ def enrich_osm_distances(df: pd.DataFrame) -> pd.DataFrame:
         logger.warning("  OSM enrichment skipped: no lat/lng columns")
         return df
 
-    valid_mask = (df["lat"] != 0.0) & (df["lng"] != 0.0)
+    valid_mask = (df["lat"] != 0.0) & (df["lng"] != 0.0) & df["lat"].notna() & df["lng"].notna()
     logger.info(
         f"  OSM enrichment: {valid_mask.sum()} rows with coordinates "
         f"({(~valid_mask).sum()} skipped)"
     )
 
-    # ── KEY OPTIMIZATION: round to 2 decimal places (~1km grid) ──────
-    # lat 28.4541 -> 28.45, lon 77.0977 -> 77.10
-    # All properties within ~1km get the same OSM result
-    df["_lat_r"] = df["lat"].round(2)
-    df["_lng_r"] = df["lng"].round(2)
+    Path(OSM_CACHE_DIR).mkdir(parents=True, exist_ok=True)
 
-    unique_coords = df[valid_mask][["_lat_r", "_lng_r"]].drop_duplicates()
-    logger.info(
-        f"  Grid cells (1km): {len(unique_coords)} unique "
-        f"(was {valid_mask.sum()} rows — {valid_mask.sum()//max(len(unique_coords),1)}x faster)"
-    )
+    # ── CITY-LEVEL BBOX BULK QUERY ────────────────────────────────────
+    # One query per city per facility = 13 × 5 = 65 calls max
+    cities = df[valid_mask]["city"].unique() if "city" in df.columns else ["unknown"]
 
-    for i, facility in enumerate(facilities, 1):
+    for facility in facilities:
         col = f"dist_{facility}_km"
-        logger.info(f"  [{i}/{len(facilities)}] Querying OSM: {facility} "
-                    f"({len(unique_coords)} grid cells)...")
+        tag = OSM_FACILITY_TAGS.get(facility, "")
+        if not tag:
+            continue
 
-        # Build grid-level cache
-        grid_results = {}
-        filled = 0
+        logger.info(f"  Querying OSM [{facility}] for {len(cities)} cities (bulk bbox)...")
 
-        for _, row in unique_coords.iterrows():
-            lat_r = float(row["_lat_r"])
-            lng_r = float(row["_lng_r"])
-            cache_key = f"{lat_r}_{lng_r}_{facility}"
+        # city -> list of (lat, lon) tuples for all fetched facilities
+        city_nodes: dict = {}
 
-            # Check file cache first
-            cache_path = Path(OSM_CACHE_DIR) / f"{cache_key}.json"
+        for city in cities:
+            cache_path = Path(OSM_CACHE_DIR) / f"city_{city}_{facility}.json"
+
+            # Check city-level cache
             if cache_path.exists():
                 try:
-                    data = json.loads(cache_path.read_text())
-                    grid_results[(lat_r, lng_r)] = data.get("dist_km", -1.0) if data else -1.0
-                    filled += 1
+                    city_nodes[city] = json.loads(cache_path.read_text())
+                    logger.info(f"    [{city}] {facility}: {len(city_nodes[city])} nodes (cached)")
                     continue
                 except Exception:
                     pass
 
-            # Query OSM
-            result = query_osm_nearest(lat_r, lng_r, facility)
-            dist   = result["dist_km"] if result and result.get("dist_km") else -1.0
-            grid_results[(lat_r, lng_r)] = dist
-            if dist > 0:
-                filled += 1
+            # Get city bbox
+            city_mask = valid_mask & (df["city"] == city)
+            if not city_mask.any():
+                city_nodes[city] = []
+                continue
 
-        # Map grid results back to all rows
-        df[col] = df.apply(
-            lambda r: grid_results.get(
-                (r["_lat_r"], r["_lng_r"]), -1.0
-            ) if valid_mask.loc[r.name] else -1.0,
-            axis=1
-        )
+            lat_min = df[city_mask]["lat"].min() - 0.1
+            lat_max = df[city_mask]["lat"].max() + 0.1
+            lng_min = df[city_mask]["lng"].min() - 0.1
+            lng_max = df[city_mask]["lng"].max() + 0.1
 
-        logger.info(
-            f"    {col}: {filled}/{len(unique_coords)} grid cells filled "
-            f"(mean={df[df[col]>0][col].mean():.2f} km)"
-        )
+            # Overpass bbox query — fetches ALL nodes in city area at once
+            query = f"""
+            [out:json][timeout:60];
+            (
+            node{tag}({lat_min},{lng_min},{lat_max},{lng_max});
+            way{tag}({lat_min},{lng_min},{lat_max},{lng_max});
+            );
+            out center 500;
+            """
+            nodes = []
+            for endpoint in OVERPASS_ENDPOINTS:
+                try:
+                    import urllib.request, urllib.parse
+                    data = urllib.parse.urlencode({"data": query}).encode()
+                    req  = urllib.request.Request(endpoint, data=data)
+                    req.add_header("User-Agent", "PropML/1.0 (property price prediction; educational)")
+                    with urllib.request.urlopen(req, timeout=60) as resp:
+                        raw = json.loads(resp.read().decode())
+                    elements = raw.get("elements", [])
+                    for el in elements:
+                        el_lat = el.get("lat") or el.get("center", {}).get("lat")
+                        el_lon = el.get("lon") or el.get("center", {}).get("lon")
+                        if el_lat and el_lon:
+                            nodes.append((float(el_lat), float(el_lon)))
+                    logger.info(f"    [{city}] {facility}: {len(nodes)} nodes fetched")
+                    break
+                except Exception as e:
+                    logger.debug(f"    [{city}] {facility} OSM error ({endpoint}): {e}")
+                    continue
 
-    df.drop(columns=["_lat_r", "_lng_r"], inplace=True)
+            city_nodes[city] = nodes
+            # Cache city result
+            cache_path.write_text(json.dumps(nodes))
+            time.sleep(1.5)  # polite rate limit between city queries
+
+        # ── Assign nearest distance to every property row ─────────────
+        def nearest_dist(row):
+            if not valid_mask.loc[row.name]:
+                return -1.0
+            city = row.get("city", "unknown")
+            nodes = city_nodes.get(city, [])
+            if not nodes:
+                return -1.0
+            lat, lng = row["lat"], row["lng"]
+            # Vectorized haversine over city nodes
+            dists = [_haversine_km(lat, lng, n[0], n[1]) for n in nodes]
+            return round(min(dists), 3) if dists else -1.0
+
+        df[col] = df.apply(nearest_dist, axis=1)
+        filled = (df[col] > 0).sum()
+        mean_d = df[df[col] > 0][col].mean()
+        logger.info(f"    {col}: {filled} rows filled (mean={mean_d:.2f} km)")
+
     return df
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# AMENITY CATALOG (28 binary flags)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-AMENITY_CATALOG = [
-    # (search_keywords,          weight, output_flag_name)
-    (["pool", "swimming"],       3.0,    "has_pool"),
-    (["gym", "fitness"],         2.0,    "has_gym"),
-    (["lift", "elevator"],       1.0,    "has_lift"),
-    (["club"],                   1.0,    "has_clubhouse"),
-    (["security", "24x7"],       0.5,    "has_security"),
-    (["power backup"],           0.5,    "has_power_backup"),
-    (["jogging", "park"],        0.5,    "has_park_jogging"),
-    (["garden"],                 0.5,    "has_garden"),
-    (["parking"],                1.0,    "has_parking"),
-    (["cctv"],                   0.5,    "has_cctv"),
-    (["intercom"],               0.3,    "has_intercom"),
-    (["badminton"],              0.5,    "has_badminton"),
-    (["tennis"],                 0.5,    "has_tennis"),
-    (["basketball"],             0.5,    "has_basketball"),
-    (["indoor games"],           0.5,    "has_indoor_games"),
-    (["amphitheatre"],           0.3,    "has_amphitheatre"),
-    (["rainwater"],              0.3,    "has_rainwater"),
-    (["solar"],                  0.3,    "has_solar"),
-    (["ev charging"],            0.5,    "has_ev_charging"),
-    (["fire safety", "fire noc"],0.5,    "has_fire_safety"),
-    (["wheelchair"],             0.3,    "has_wheelchair"),
-    (["kids play", "children play"], 0.5, "has_kids_play"),
-    (["multipurpose"],           0.3,    "has_multipurpose"),
-    (["meditation"],             0.3,    "has_meditation"),
-    (["library"],                0.3,    "has_library"),
-    (["cafeteria"],              0.3,    "has_cafeteria"),
-    (["atm"],                    0.3,    "has_atm"),
-    (["spa"],                    0.5,    "has_spa"),
-]
-
 
 def parse_amenities_full(amenity_str) -> dict:
     """

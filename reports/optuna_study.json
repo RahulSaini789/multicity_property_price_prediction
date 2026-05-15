@@ -1,17 +1,17 @@
 {
-  "best_mape_pct": 20.483,
+  "best_mape_pct": 20.566,
   "best_params": {
-    "n_estimators": 1386,
+    "n_estimators": 1010,
     "max_depth": 11,
-    "learning_rate": 0.057171502680213045,
-    "subsample": 0.7827880988467749,
-    "colsample_bytree": 0.5017034654926353,
+    "learning_rate": 0.10993271418938289,
+    "subsample": 0.8809086242592045,
+    "colsample_bytree": 0.8081912156440583,
     "min_child_weight": 1,
-    "reg_alpha": 0.40698459092041617,
-    "reg_lambda": 12.23703483537516,
-    "gamma": 0.00020445147794809107
+    "reg_alpha": 1.0312519880129516,
+    "reg_lambda": 10.811491709735039,
+    "gamma": 0.00020369012744632852
   },
   "n_trials": 100,
   "cv_folds": 5,
-  "timestamp": "2026-05-11T10:54:54.911945"
+  "timestamp": "2026-05-15T11:08:30.485746"
 }
