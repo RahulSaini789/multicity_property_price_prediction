@@ -420,8 +420,8 @@ footer{border-top:1px solid var(--border);padding:3rem;max-width:1300px;margin:0
         <button class="cpill" onclick="setPCity('bangalore',this)">BLR</button>
         <button class="cpill" onclick="setPCity('hyderabad',this)">HYD</button>
         <button class="cpill" onclick="setPCity('pune',this)">PNE</button>
-        <button class="cpill" onclick="setPCity('chennai',this)">CHN</button>
-        <button class="cpill" onclick="setPCity('delhi',this)">DEL</button>
+        
+        
       </div>
       <div class="fg">
         <div class="fld">
@@ -1402,6 +1402,55 @@ window.addEventListener('load',()=>{
   buildWaterfall();buildSentiment('gurgaon');
   buildCityMape();
 });
+
+/* ─── RECOMMENDATIONS ─── */
+const REC_DATA=[
+  {city:'Mumbai',tier:'tier1',area:'Powai',title:'3 BHK Lake View Flat',sqft:1650,price:3.2,badge:'HOT',badgeCol:'#ff5722',match:94,emoji:'🏙️',budget:false,luxury:true,roi:false},
+  {city:'Bangalore',tier:'tier1',area:'Whitefield',title:'2 BHK IT Corridor Flat',sqft:1100,price:1.15,badge:'VALUE',badgeCol:'#00e5ff',match:91,emoji:'💻',budget:false,luxury:false,roi:true},
+  {city:'Gurgaon',tier:'tier2',area:'Sector 92',title:'3 BHK Modern Apartment',sqft:1800,price:1.62,badge:'NEW',badgeCol:'#00e676',match:88,emoji:'🏢',budget:false,luxury:false,roi:true},
+  {city:'Pune',tier:'tier1',area:'Hinjewadi',title:'2 BHK IT Park Adjacent',sqft:980,price:0.72,badge:'BEST ROI',badgeCol:'#ffd600',match:92,emoji:'🌿',budget:true,luxury:false,roi:true},
+  {city:'Hyderabad',tier:'tier1',area:'Gachibowli',title:'3 BHK HITEC View Flat',sqft:1750,price:1.68,badge:'HOT',badgeCol:'#ff5722',match:89,emoji:'🔷',budget:false,luxury:false,roi:false},
+  {city:'Noida',tier:'tier2',area:'Sector 137',title:'2 BHK Smart Home',sqft:1050,price:0.88,badge:'NEW',badgeCol:'#00e676',match:85,emoji:'🏘️',budget:true,luxury:false,roi:true},
+  {city:'Mumbai',tier:'tier1',area:'BKC',title:'4 BHK Ultra Luxury Suite',sqft:3200,price:14.5,badge:'LUXURY',badgeCol:'#a78bfa',match:78,emoji:'👑',budget:false,luxury:true,roi:false},
+  {city:'Kota',tier:'tier3',area:'Vigyan Nagar',title:'2 BHK Coaching Zone',sqft:900,price:0.38,badge:'BUDGET',badgeCol:'#69f0ae',match:82,emoji:'📚',budget:true,luxury:false,roi:false},
+  {city:'Chandigarh',tier:'tier2',area:'Aerocity',title:'3 BHK Airport Vicinity',sqft:1400,price:0.95,badge:'GROWING',badgeCol:'#40c4ff',match:86,emoji:'🌆',budget:true,luxury:false,roi:true},
+];
+let recF='all';
+function filterRec(f,el){
+  recF=f;
+  document.querySelectorAll('#recommend button').forEach(b=>{b.style.background='transparent';b.style.color='var(--muted2)';});
+  el.style.background='linear-gradient(135deg,#ff5722,#f50057)';
+  el.style.color='#fff';
+  renderRec();
+}
+function renderRec(){
+  const data=REC_DATA.filter(p=>{
+    if(recF==='all')return true;
+    if(recF==='tier1')return p.tier==='tier1';
+    if(recF==='budget')return p.budget;
+    if(recF==='luxury')return p.luxury;
+    if(recF==='roi')return p.roi;
+    return true;
+  });
+  const el=document.getElementById('recGrid');
+  if(!el)return;
+  el.innerHTML=data.map(p=>`
+    <div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.08);border-radius:18px;overflow:hidden;transition:all .3s;cursor:pointer;" onmouseover="this.style.transform='translateY(-6px)';this.style.borderColor='rgba(255,87,34,.3)'" onmouseout="this.style.transform='none';this.style.borderColor='rgba(255,255,255,.08)'">
+      <div style="height:140px;background:linear-gradient(135deg,rgba(255,87,34,.1),rgba(124,58,237,.1));display:flex;align-items:center;justify-content:center;font-size:3.5rem;position:relative;">
+        ${p.emoji}
+        <span style="position:absolute;top:10px;left:10px;font-family:var(--mono);font-size:9px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.7);color:${p.badgeCol};border:1px solid ${p.badgeCol}44;">${p.badge}</span>
+        <span style="position:absolute;top:10px;right:10px;font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(0,0,0,.7);color:${p.match>90?'#00e676':p.match>85?'#ffd600':'#ff5722'};">${p.match}% Match</span>
+      </div>
+      <div style="padding:1.25rem;">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--ember);letter-spacing:2px;margin-bottom:4px;">${p.city} · ${p.area}</div>
+        <div style="font-family:var(--serif);font-size:1.05rem;font-weight:700;margin-bottom:8px;">${p.title}</div>
+        <div style="font-family:var(--serif);font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#ffd600,#ff5722);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">₹ ${p.price} Cr</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted2);margin-top:4px;margin-bottom:12px;">₹${Math.round(p.price*1e7/p.sqft).toLocaleString()}/sqft · ${p.sqft.toLocaleString()} sqft</div>
+        <div style="height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;"><div style="width:${p.match}%;height:100%;background:linear-gradient(90deg,#00e676,#00e5ff);"></div></div>
+      </div>
+    </div>`).join('');
+}
+document.addEventListener('DOMContentLoaded', renderRec);
 </script>
 </body>
 </html>
