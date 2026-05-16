@@ -31,10 +31,18 @@ def main():
         "ensemble_weights.pkl",
         "feature_list.pkl",
         "version.txt",
+        "combined_engineered.parquet",
+        "combined_cleaned.parquet",
     ]
 
     for filename in files_to_upload:
-        local_path = models_dir / filename
+        if filename.endswith(".parquet"):
+            if "engineered" in filename:
+                local_path = Path("data/features") / filename
+            else:
+                local_path = Path("data/cleaned") / filename
+        else:
+            local_path = models_dir / filename
         if not local_path.exists():
             print(f"  Skipping (not found): {filename}")
             continue

@@ -244,6 +244,8 @@ def download_models_from_hf():
             "feature_list.pkl",
             "version.txt",
             "target_encoding_map.json",
+            "combined_engineered.parquet",
+            "combined_cleaned.parquet",
         ]
 
         for filename in files:
@@ -261,6 +263,13 @@ def download_models_from_hf():
                     import shutil
                     pathlib.Path(ENC_MAP_PATH).parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy(local_path, ENC_MAP_PATH)
+                # Move parquet files to correct data/ locations
+                if filename == "combined_engineered.parquet":
+                    pathlib.Path("data/features").mkdir(parents=True, exist_ok=True)
+                    shutil.copy(local_path, "data/features/combined_engineered.parquet")
+                if filename == "combined_cleaned.parquet":
+                    pathlib.Path("data/cleaned").mkdir(parents=True, exist_ok=True)
+                    shutil.copy(local_path, "data/cleaned/combined_cleaned.parquet")
 
             except Exception as e:
                 logger.warning(f"  Could not download {filename}: {e}")
