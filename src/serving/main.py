@@ -227,7 +227,8 @@ def download_models_from_hf():
 
     # Check if models already exist (cached from previous warm request)
     required_files = ["models_xgb_ensemble.pkl", "ensemble_weights.pkl", "feature_list.pkl"]
-    if all((models_dir / f).exists() for f in required_files):
+    parquet_ok = (pathlib.Path("data/features/combined_engineered.parquet").exists() and pathlib.Path("data/cleaned/combined_cleaned.parquet").exists())
+    if all((models_dir / f).exists() for f in required_files) and parquet_ok:
         logger.info("Models already present — skipping HF download")
         return
 
