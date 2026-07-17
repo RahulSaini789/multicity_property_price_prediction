@@ -267,10 +267,10 @@ def download_models_from_hf():
                 # Move parquet files to correct data/ locations
                 if filename == "combined_engineered.parquet":
                     pathlib.Path("data/features").mkdir(parents=True, exist_ok=True)
-                    shutil.copy(local_path, "data/features/combined_engineered.parquet")
+                    shutil.copy(local_path, "data/features/combined_engineered.parquet") # type: ignore
                 if filename == "combined_cleaned.parquet":
                     pathlib.Path("data/cleaned").mkdir(parents=True, exist_ok=True)
-                    shutil.copy(local_path, "data/cleaned/combined_cleaned.parquet")
+                    shutil.copy(local_path, "data/cleaned/combined_cleaned.parquet") # type: ignore
 
             except Exception as e:
                 logger.warning(f"  Could not download {filename}: {e}")
